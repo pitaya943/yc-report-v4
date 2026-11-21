@@ -1,6 +1,7 @@
 # Task brief：skeleton-and-sign-in（骨架與登入）
 
-狀態：草稿，等待 owner 核准。核准前不會開始無人值守的工作。
+狀態：owner 於 2026-11-21 核准並說「開始」。owner 同意 `AUD-F01` 拆成兩段（假設 1）、
+六個訊息採用 v2 的字串（假設 2），並決定謹慎程度為「謹慎」、預算 16 個 session。
 
 後續 task 地圖的第 2 個 task（見 `docs/tasks/system-design/task-map.md`）。依據的設計是
 `docs/tasks/system-design/design.md`。
@@ -132,11 +133,11 @@
 
 ## 預算
 
-4 小時、12 個 session（設定檔預設值；一個 subagent 算一個 session）。
+4 小時、16 個 session（owner 核准時決定；一個 subagent 算一個 session）。
 
 ## 謹慎程度
 
-謹慎（Chief 的建議；見「請 owner 決定」）。之後每個 task 都建在這個地基上，這裡的
+謹慎（owner 核准時決定）。之後每個 task 都建在這個地基上，這裡的
 錯誤最貴，所以每張 ticket 合併前先獨立驗證，最後再驗證整個分支。
 
 ## 假設

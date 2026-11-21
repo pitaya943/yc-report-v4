@@ -1,0 +1,3 @@
+time	who	decision	why	evidence
+2026-11-21T23:44Z	chief	Wrote .shilaycow/pitfalls.md from the system-design Retro comment: five entries, each with count 1	The owner left no comments on the finished tracking issue, so the Retro is the only source	issue 2 Retro comment; .shilaycow/pitfalls.md
+2026-11-21T23:44Z	chief	Found that no container image can be built in the agent environment (no Docker daemon); asked the owner how S-12 should be proven and carried on with everything else	S-12 says the image is built and started; pretending to prove it another way would change an approved scenario	needs-owner issue; docker info output in the tracking issue
