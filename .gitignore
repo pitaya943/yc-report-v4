@@ -1,0 +1,4 @@
+# Agent worktrees and local environments are never tracked.
+.claude/worktrees/
+.venv/
+__pycache__/
