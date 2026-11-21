@@ -1,7 +1,9 @@
 # 後續 task 地圖
 
-整個系統分成 9 個 task。本 task（`system-design`）是第 1 個；第 2 至 8 個建置全部 31
-個 feature，每個 feature 恰好屬於一個 task；第 9 個把成品部署上線。每個 task 都會
+整個系統分成 9 個 task。`system-design` 是第 1 個；第 2 至 8 個建置全部 31 個 feature；
+第 9 個把成品部署上線。每個 feature 屬於一個 task，只有 `AUD-F01` 例外：它的權限總表
+（AUD-R02）與拒絕紀錄（AUD-R03）要等其他領域的動作存在才驗得了，所以 owner 在核准
+`skeleton-and-sign-in` 的 brief 時同意把它拆成兩段（Task 2 與 Task 8）。每個 task 都會
 先有自己的 brief 讓 owner 核准，這張地圖只定範圍與順序。
 
 ## 順序與並行
@@ -30,21 +32,21 @@ flowchart LR
 
 ## 總表
 
-| # | Task | Feature 數 | 規則 | Scenario | 例子 | 依賴 |
-| --- | --- | --- | --- | --- | --- | --- |
-| 1 | system-design（本 task） | 0 | 0 | 0 | 0 | 無 |
-| 2 | 骨架與登入（`skeleton-and-sign-in`） | 4 | 13 | 22 | 51 | 1 |
-| 3 | 日報與審核（`reports-and-review`） | 6 | 28 | 53 | 97 | 2 |
-| 4 | 帳戶與設定（`accounts-and-settings`） | 6 | 25 | 45 | 98 | 2 |
-| 5 | 薪資（`payroll`） | 7 | 31 | 60 | 106 | 3、4 |
-| 6 | 材料（`materials`） | 4 | 19 | 36 | 75 | 2 |
-| 7 | 流水帳與檔案庫（`ledger-and-archives`） | 3 | 16 | 29 | 51 | 2；ARC-F01 另需 3 與 5 |
-| 8 | 稽核與收尾（`audit-and-wrap-up`） | 1 | 5 | 9 | 24 | 2 至 7 |
-| 9 | 部署上線（`deployment`） | 0 | 0 | 0 | 0 | 8；需要 owner 的帳號與金鑰 |
-| | **合計** | **31** | **137** | **254** | **502** | |
+| # | Task | 涵蓋 | 依賴 |
+| --- | --- | --- | --- |
+| 1 | system-design | 設計，沒有 feature | 無 |
+| 2 | 骨架與登入（`skeleton-and-sign-in`） | IAM-F01 至 F03；AUD-F01 的 AUD-R01 | 1 |
+| 3 | 日報與審核（`reports-and-review`） | RPT-F01 至 F03、REV-F01 至 F03 | 2 |
+| 4 | 帳戶與設定（`accounts-and-settings`） | IAM-F04 至 F07、CFG-F01、CFG-F02 | 2 |
+| 5 | 薪資（`payroll`） | PAY-F01 至 F07 | 3、4 |
+| 6 | 材料（`materials`） | MAT-F01 至 F04 | 2 |
+| 7 | 流水帳與檔案庫（`ledger-and-archives`） | LED-F01、LED-F02、ARC-F01 | 2；ARC-F01 另需 3 與 5 |
+| 8 | 稽核與收尾（`audit-and-wrap-up`） | AUD-F02；AUD-F01 的 AUD-R02、AUD-R03 | 2 至 7 |
+| 9 | 部署上線（`deployment`） | 沒有 feature | 8；需要 owner 的帳號與金鑰 |
 
-合計與 [`docs/spec/index.md`](../../spec/index.md) 的總數一致：31 個 feature、137 條
-規則、254 個 scenario、502 個例子。
+每個 task 的規則、scenario 與例子數量列在下面各節的表裡；`tools/check_spec.py` 會
+確認每個 feature 在這份文件裡的數字加起來等於 feature 檔的實際數量。全系統的總數只
+寫在 [`docs/spec/index.md`](../../spec/index.md)。
 
 ## 各 task 的內容
 
@@ -57,7 +59,7 @@ flowchart LR
 | [IAM-F01 登入](../../spec/accounts/IAM-F01-sign-in.feature) | 3 | 4 | 10 |
 | [IAM-F02 登入鎖定與頻率限制](../../spec/accounts/IAM-F02-sign-in-lockout-and-rate-limit.feature) | 4 | 7 | 10 |
 | [IAM-F03 Session 與登出](../../spec/accounts/IAM-F03-session-and-sign-out.feature) | 3 | 8 | 9 |
-| [AUD-F01 每個動作都重新檢查權限](../../spec/audit/AUD-F01-authorization-on-every-action.feature) | 3 | 3 | 22 |
+| [AUD-F01 每個動作都重新檢查權限](../../spec/audit/AUD-F01-authorization-on-every-action.feature)（只含 AUD-R01） | 1 | 1 | 1 |
 
 feature 以外要交付的：可部署的骨架（Dockerfile、migration 指令、健康檢查頁、設定檢查）；第 4 節全部的共同約定；第 6 節的測試骨架與共用步驟；建立 `try-<app>` skill；CI 工作流程（需要 owner 加入，因為在 `.github/` 下）。
 
@@ -151,6 +153,7 @@ brief 要帶給 owner 決定的未決問題：OQ-21、OQ-22、OQ-23。
 | Feature | 規則 | Scenario | 例子 |
 | --- | --- | --- | --- |
 | [AUD-F02 稽核軌跡](../../spec/audit/AUD-F02-audit-trail.feature) | 5 | 9 | 24 |
+| [AUD-F01 每個動作都重新檢查權限](../../spec/audit/AUD-F01-authorization-on-every-action.feature)（AUD-R02、AUD-R03） | 2 | 2 | 21 |
 
 feature 以外要交付的：稽核紀錄的查閱頁；權限總表的逐格測試；附錄 D 的檢查清單（分頁、顏色、導覽、回饋）；負載測試；全部 137 條規則都在已建置清單上。
 
@@ -171,6 +174,6 @@ owner 執行或當場核准；agent 準備指令與檢查清單。
 
 ## 規模的提醒
 
-Task 3 與 Task 5 最大（各約 100 個例子）。若照設定檔預設的預算（4 小時、12 個
+Task 3、4 與 5 最大（各約 100 個例子）。若照設定檔預設的預算（4 小時、12 個
 session）不夠，建議在它們的 brief 裡把預算調高，或把 Task 5 拆成「計算與批次」
 （PAY-F01 至 F04）與「匯出與統計」（PAY-F05 至 F07）。

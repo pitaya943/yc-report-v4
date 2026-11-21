@@ -23,5 +23,5 @@ owner 已同意、尚未建置的行為。每個 feature 是一個 Gherkin 檔�
 
 | Feature | 規則 | Scenario | 例子（case） | 預定建置的 task |
 | --- | --- | --- | --- | --- |
-| [AUD-F01 每個動作都重新檢查權限](AUD-F01-authorization-on-every-action.feature) | 3 | 3 | 22 | 2 骨架與登入 |
+| [AUD-F01 每個動作都重新檢查權限](AUD-F01-authorization-on-every-action.feature) | 3 | 3 | 22 | 2 骨架與登入（AUD-R01）；8 稽核與收尾（AUD-R02、AUD-R03） |
 | [AUD-F02 稽核軌跡](AUD-F02-audit-trail.feature) | 5 | 9 | 24 | 8 稽核與收尾 |

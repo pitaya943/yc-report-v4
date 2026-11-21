@@ -9,13 +9,19 @@
 （commit `e839d9d`，owner 已同意其中 13 條定義與 Q-001–Q-062 的決定）；與原文的每一處
 差異列在 [`spec-baseline-diff.md`](../tasks/system-design/spec-baseline-diff.md)。
 
+**來源。** Kuei 的決定 Q-001–Q-062，以及 Kuei 同意的 AD-1–AD-13（見
+[`reference/appendix-e-decisions.md`](reference/appendix-e-decisions.md) 與
+[`definitions.md`](definitions.md)）。
+
+**讀者。** 看不到舊系統的實作者與驗證者。
+
 共 9 個領域、31 個 feature、137 條規則、254 個 scenario、502 個例子（case：一般
 scenario 算一個，Scenario Outline 的每一列算一個）。
 <!-- spec-counts: features=31 rules=137 scenarios=254 cases=502 -->
 
 ## 領域
 
-箭頭表示「需要對方的資料才能運作」。
+依「資料誰擁有、規則誰決定」切成 9 個領域。箭頭表示「需要對方的資料才能運作」。
 
 ```mermaid
 flowchart LR
