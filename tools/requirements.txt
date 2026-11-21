@@ -1,0 +1,2 @@
+# Tools for checking the spec. Not runtime dependencies of the product.
+gherkin-official==43.0.0
