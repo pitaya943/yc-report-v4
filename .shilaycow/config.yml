@@ -1,0 +1,35 @@
+# shilaycow harness settings. Every shilaycow skill reads this file from the
+# default branch. Change it only through a pull request the owner merges.
+
+# The GitHub account that owns main: the only one that approves and merges
+# pull requests into it.
+owner: pitaya943
+
+# The GitHub account agent sessions act as. It holds the Write role only, so
+# it can push branches and open pull requests but cannot change repository
+# settings or approve its own work.
+bot: bullet-bots
+
+# How much goes into one pull request to main: change | ticket | milestone | task.
+# task = the whole task lands as a single pull request.
+merge_unit: task
+
+# The command that runs the project's tests. Empty until the first task
+# creates a test setup; fill it in then.
+test_command: ""
+
+# Default limit for one unattended task. A subagent counts as a session.
+# A task's brief may set its own.
+budget:
+  hours: 4
+  sessions: 12
+
+# How many builders may work at the same time.
+parallel_builders: 2
+
+# How many times a failed verdict may be fixed and judged again before the
+# task stops and waits for the owner.
+fix_rounds: 2
+
+# Language of briefs, designs, reports and verdicts.
+report_language: zh-TW
