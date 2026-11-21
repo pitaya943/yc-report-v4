@@ -7,6 +7,7 @@ restore the files. Exit status 0 means every break was caught.
     python prove_fail.py            # all
     python prove_fail.py guard      # only entries whose name contains "guard"
 """
+import os
 import re
 import subprocess
 import sys
@@ -160,6 +161,9 @@ def run_break(name, edits, tests, runs):
                 [sys.executable, "-m", "pytest", "-q", "-rfE", "-p", "no:cacheprovider",
                  *(f"tests/{t}" for t in tests)],
                 cwd=HERE, capture_output=True, text=True,
+                # No .pyc files: an edit of the same length made within the same
+                # second would otherwise leave a stale compiled copy behind.
+                env={**os.environ, "PYTHONDONTWRITEBYTECODE": "1"},
             )
             failed = set(re.findall(r"^FAILED tests/(\S+)", result.stdout, re.M))
             if "ERROR tests/" in result.stdout or "error" in result.stdout.splitlines()[-1]:
