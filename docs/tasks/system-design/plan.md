@@ -15,3 +15,8 @@
 
 C-* 是文件工作，由 Chief 自己做，不另開 ticket；最後由沒有參與建置的獨立 session
 驗證整個 PR。
+
+## 結果
+
+T-01（PR #3）與 T-02（PR #4）已合併進 `task/system-design`；C-1 至 C-5 已完成。
+設計在 T-02 之後改了一處：排程觸發由平台 cron 改為應用程式行程內的迴圈（見 trail）。

@@ -95,7 +95,7 @@ brief 要帶給 owner 決定的未決問題：OQ-1、OQ-2、OQ-4、OQ-5、OQ-6�
 
 feature 以外要交付的：銀行帳號加密（依 T-01 的試作）；預設單價與費率的種子資料。
 
-brief 要帶給 owner 決定的未決問題：無。
+brief 要帶給 owner 決定的未決問題：OQ-20。
 
 ### Task 5：薪資（`payroll`）
 
@@ -113,7 +113,7 @@ brief 要帶給 owner 決定的未決問題：無。
 
 feature 以外要交付的：薪資、保留金、現金面額的純函式；薪資批次的不可變保護；PDF 與轉帳單（依 T-02 的試作）。
 
-brief 要帶給 owner 決定的未決問題：OQ-15、OQ-16；轉帳單在金鑰不存在時的行為（設計 5.2）。
+brief 要帶給 owner 決定的未決問題：OQ-15、OQ-16、OQ-24；轉帳單在金鑰不存在時的行為（設計 5.2）。
 
 ### Task 6：材料（`materials`）
 
@@ -142,7 +142,7 @@ brief 要帶給 owner 決定的未決問題：OQ-14。
 
 feature 以外要交付的：檔案儲存介面與會過期的連結（依 T-01）；到期工作執行器與每日、每月歸檔（依 T-02）；過期 session 的清除。
 
-brief 要帶給 owner 決定的未決問題：無。
+brief 要帶給 owner 決定的未決問題：OQ-21、OQ-22、OQ-23。
 
 ### Task 8：稽核與收尾（`audit-and-wrap-up`）
 
