@@ -1,0 +1,8 @@
+fastapi==0.165.0
+httpx==0.28.1
+python-multipart==0.0.34
+itsdangerous==2.2.0
+cryptography==50.0.2
+boto3==1.44.9
+moto[server]==5.2.5
+pytest==9.2.0
