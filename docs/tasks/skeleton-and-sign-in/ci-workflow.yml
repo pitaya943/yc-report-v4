@@ -2,10 +2,12 @@
 # 三個 job：測試、規格檢查、容器映像。
 name: CI
 
+# 在進 main 的 pull request 上執行；另外在 task 分支被推送時也執行，這樣一個 task 的
+# 成果在開 pull request 之前就能被檢查。
 on:
   pull_request:
   push:
-    branches: [main]
+    branches: [main, "task/**"]
 
 permissions:
   contents: read
