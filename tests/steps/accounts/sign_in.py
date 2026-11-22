@@ -32,7 +32,7 @@ def the_name_list_includes(world: World, name: str):
     assert name in _listed_names(world)
 
 
-@when(parsers.re(r'^"(?P<name>[^"]+)" signs in with the correct password$'))
+@when(parsers.re(r'^"(?P<name>[^"]+)" signs in(?: with the correct password| again)?$'))
 def signs_in_with_the_correct_password(world: World, name: str):
     form = {"group": sign_in_group(world.accounts[name]), "name": name, "password": PASSWORD}
     world.send("POST", "/sign-in", data=form)
@@ -49,9 +49,8 @@ def a_visitor_signs_in_as(world: World, name: str, password: str):
 def the_person_is_signed_in(world: World, name: str):
     [response] = world.responses
     assert response.status_code == 303, response.text
-    world.sessions[name] = response.cookies[SESSION_COOKIE]
+    world.signed_in(name, response)
     page = world.open_page(response.headers["location"], actor=name)
-    assert page.status_code == 200
     [shown] = [text for attrs, text in elements(page.text, "span") if attrs.get("id") == "signed-in-as"]
     assert shown.startswith(f"{name}（")
 

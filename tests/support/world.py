@@ -16,12 +16,15 @@ from app.core.clock import TAIPEI
 from tests.support import recorder
 from tests.support.cli import REPO
 from tests.support.clock import TestClock
+from tests.support.html import elements
 from tests.support.recorder import Change
 from tests.support.spec import SpecStep
 
 # Every account of the shared background has this password.
 PASSWORD = "background-password-正確"
 SESSION_COOKIE = "session"
+CSRF_HEADER = "X-CSRF-Token"
+CSRF_FIELD = "csrf_token"
 SYSTEM = "SYSTEM"
 
 
@@ -49,6 +52,7 @@ class World:
         self.database_url = database_url
         self.accounts: dict[str, dict[str, str]] = {}
         self.sessions: dict[str, str] = {}
+        self._csrf_tokens: dict[str, str] = {}
         self.responses: list[Response] = []
         self._before: recorder.Snapshot | None = None
         self._accounted: list[Change] = []
@@ -91,19 +95,38 @@ class World:
         form = {"group": sign_in_group(self.accounts[name]), "name": name, "password": PASSWORD}
         response = self._request("POST", "/sign-in", data=form)
         assert response.status_code == 303, f"{name} could not sign in: {response.status_code} {response.text}"
+        self.signed_in(name, response)
+
+    def signed_in(self, name: str, response: Response) -> None:
+        """Take over the session a successful sign-in response started, and read its page for the anti-forgery token."""
         self.sessions[name] = response.cookies[SESSION_COOKIE]
+        page = self.open_page(response.headers["location"], actor=name)
+        assert page.status_code == 200, f"{name} has no landing page: {page.status_code} {page.text}"
+        [self._csrf_tokens[self.sessions[name]]] = {
+            attrs["value"] for attrs, _ in elements(page.text, "input") if attrs.get("name") == CSRF_FIELD
+        }
+
+    def csrf_token(self, name: str) -> str:
+        """The anti-forgery token the pages of ``name``'s session carry."""
+        return self._csrf_tokens[self.sessions[name]]
 
     # The action
 
-    def send(self, method: str, path: str, *, actor: str | None = None, **kwargs) -> Response:
+    def send(self, method: str, path: str, *, actor: str | None = None, csrf: bool = True, **kwargs) -> Response:
         """Send the scenario's request, as ``actor`` if given, otherwise as a visitor.
 
         Refusals come back as JSON. What the database held before the first
         request sent this way is what "written" is measured against.
+
+        A request of ``actor`` that changes something carries the session's
+        anti-forgery token in the header, as the shared layout makes every
+        page do; ``csrf=False`` leaves it out.
         """
         if self._before is None:
             self._before = recorder.snapshot(self.database_url)
         cookie = self.sessions[actor] if actor else None
+        if csrf and cookie in self._csrf_tokens and method.upper() not in ("GET", "HEAD"):
+            kwargs["headers"] = {CSRF_HEADER: self._csrf_tokens[cookie], **(kwargs.get("headers") or {})}
         response = self._request(method, path, session=cookie, **kwargs)
         self.responses.append(response)
         return response

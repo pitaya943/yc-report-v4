@@ -3,7 +3,7 @@ import importlib.util
 import pkgutil
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI
 from fastapi.staticfiles import StaticFiles
 
 import app as app_package
@@ -33,7 +33,14 @@ def create_app(settings: Settings, clock: Clock) -> FastAPI:
         finally:
             database.close()
 
-    application = FastAPI(lifespan=lifespan, docs_url=None, redoc_url=None, openapi_url=None)
+    application = FastAPI(
+        lifespan=lifespan,
+        docs_url=None,
+        redoc_url=None,
+        openapi_url=None,
+        # Before every route, including the ones later tasks add.
+        dependencies=[Depends(web.guard_session)],
+    )
     application.state.settings = settings
     application.state.clock = clock
     application.state.database = database
