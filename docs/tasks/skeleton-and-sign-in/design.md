@@ -94,6 +94,7 @@ class SystemClock:                         # 建構時可給 offset（CLOCK_OFFS
 
 - psycopg 3 的連線池。路由一律是同步的 `def`（FastAPI 會放到執行緒池），不寫
   `async def` 路由：v3 在 `async` 路由裡呼叫同步資料庫與密碼雜湊，卡住了整個行程。
+  只讀請求內容、不碰資料庫也不做雜湊的相依函式可以是 `async`（讀表單就是）。
 - 每個請求一條連線、一個交易：請求處理成功就提交，丟出例外就回復。服務函式不自己
   提交。
 - Migration 是 `migrations/NNNN_name.sql`，只往前。`schema_migrations` 記錄版本、檔名、
@@ -126,8 +127,9 @@ class Refusal(Exception):
    含 `application/json` 時，主體是 `{"outcome": "...", "message": "..."}`；否則是
    頁面，訊息放在 `role="alert"` 的元素裡。
 
-`UNAUTHENTICATED` 而且是瀏覽器開頁面（`GET`、要的是 HTML）時，主體就是登入頁本身，
-狀態碼仍是 401：使用者看到登入頁與「請重新登入」，測試看到 401。
+`UNAUTHENTICATED` 而且請求要的是 HTML 時（不論方法），主體就是登入頁本身，狀態碼仍是
+401：使用者看到登入頁與訊息，測試看到 401。錯誤處理以 `outcomes.install(app, page)`
+安裝；`page` 是把拒絕畫成頁面的函式，由 `core/web.py` 以樣板提供。
 
 「找不到」不是結果類別：回 404，不寫稽核（brief 假設 3）。
 
@@ -214,6 +216,9 @@ erDiagram
     text description
   }
 ```
+
+`audit_log` 在 migration `0001`，`accounts` 與 `sessions` 在 `0002`，`sign_in_attempts` 在
+`0003`。
 
 約束：顯示名稱唯一；角色與區域的檢查約束；大表旗標只能在 `USER` 上；`OWNER` 不能有
 `archived_at`；部分唯一索引保證只有一位 `OWNER`；`failed_count >= 0`。帳戶表只放本
@@ -338,7 +343,7 @@ argon2id（`argon2-cffi`）。`standard` 用套件的預設參數；`fast` 用�
 
 | 句型 | 意義 |
 | --- | --- |
-| `the clock is "<時刻>" in Asia/Taipei`、時間經過的各種說法 | 設定或撥動測試時鐘 |
+| `the clock is "<時刻>" in Asia/Taipei` | 設定測試時鐘。撥動時間的說法在規格裡都只出現在單一領域，所以由各領域自己的步驟呼叫 `world.clock.advance`，不做成共用步驟 |
 | `"<名字>" is signed in` | 以該帳戶建立登入狀態，之後的請求帶著它 |
 | `the request is rejected as <類別>` | 狀態碼與 `X-Outcome` 都符合 |
 | `… with message "<訊息>"` | 回應的訊息逐字相同 |
