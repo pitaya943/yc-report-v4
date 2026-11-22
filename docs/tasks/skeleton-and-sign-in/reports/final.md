@@ -3,6 +3,9 @@
 依我自己的檢查，brief 的 14 個情境（S-1 至 S-14）全部達成。S-12 的容器映像由 owner 加入的
 CI 在 GitHub 上建置並啟動來證明（issue #7，owner 選的做法）。
 
+這是第二版。第一次的最終驗證（commit `4fc0563`）判定 FAIL：14 個情境中 S-14 的第一項
+不成立，其餘全部通過。這一版修正了那一項，沒有改動任何程式行為。
+
 追蹤 issue：#6。Brief：[`brief.md`](../brief.md)。設計：[`design.md`](../design.md)。
 
 ## 做了什麼
@@ -103,11 +106,11 @@ CI 在 GitHub 上建置並啟動來證明（issue #7，owner 選的做法）。
 | S-11 本機啟動並用瀏覽器登入 | 是 | `tests/browser/`；`.claude/skills/try-yc-report/`；PR #12 的 verdict 照 README 走過一次 |
 | S-12 成品可以被部署 | 是 | [CI 第 1 次執行](https://github.com/pitaya943/yc-report-v4/actions/runs/45004197644)（commit `504cbd5`）的 `image` job 每一步都成功：建置映像、映像不是以 root 執行、缺 `DATABASE_URL` 時拒絕啟動並指名、以正式設定啟動後 `/health` 回 200。其餘部分（設定檢查、`serve` 先更新資料庫結構、`/status`）見 PR #8、#12 的 verdict |
 | S-13 第一位 owner 由指令建立 | 是 | `create-owner` 的測試；PR #12 的 verdict |
-| S-14 上一個 task 留下的問題已處理 | 是 | `tools/check_spec.py`（改錯任何一處數字都失敗，trail 有四種弄壞的紀錄）；`spec-baseline-diff.md` 的新章節；系統設計 9.3 與 9.7；附錄 B 的六個字串 |
+| S-14 上一個 task 留下的問題已處理 | 是 | `tools/check_spec.py`：現行文件裡寫出規格總數的每一處，以及「已開啟幾條規則」，改錯都會失敗（trail 記了十二種弄壞的結果）；當時的紀錄不在此列，見「有疑慮的」；`spec-baseline-diff.md` 的新章節；系統設計 9.3 與 9.7；附錄 B 的六個字串 |
 
 ## 我自己做的決定
 
-完整的紀錄在 [`trail.tsv`](../trail.tsv)（Chief 與五位 builder 共 99 列）。owner 最可能
+完整的紀錄在 [`trail.tsv`](../trail.tsv)（Chief 與五位 builder 共 103 列）。owner 最可能
 想知道的：
 
 | 決定 | 原因 |
@@ -139,6 +142,17 @@ CI 在 GitHub 上建置並啟動來證明（issue #7，owner 選的做法）。
 - **CI 有一則警告**：`actions/checkout@v4` 等三個 action 使用的 Node.js 20 已被標為
   過時，目前被強制改用 Node.js 24 執行。之後要把這些 action 升到新版；`.github/` 下
   的檔案要由 owner 修改。
+- **第一次最終驗證失敗的原因，與這次的修正。** 驗證者發現規則總數 137 還寫在檢查
+  不到的地方：規格首頁的「137 條規則中已開啟 11 條」（本 task 自己加的）、task 地圖與
+  系統設計各一兩句；「已開啟 11 條」也沒有任何東西核對，所以把一條已建置的規則從
+  清單拿掉不會有東西失敗。修正：其他現行文件不再寫總數；檢查工具現在核對現行文件
+  裡提到總數的句子，並核對「已開啟幾條」等於 `tests/implemented_rules.txt` 的行數、
+  清單上的每個 ID 都存在於規格。
+- **「不論寫在哪裡」有一個刻意的例外：當時的紀錄。** 每個 task 的 `brief.md`、
+  `reports/` 與 `spec-baseline-diff.md` 寫的是當時為真的數字（例如本 task 的 brief 寫
+  「規格有 137 條規則」）。之後規格增加 scenario 時，這些紀錄不該被回頭修改，所以檢查
+  工具不檢查它們的總數；規則寫在 `docs/spec/conventions.md` 的「數字只寫一次」。如果
+  owner 認為紀錄也該被檢查，這是一行設定的事，但之後每次規格增減都要改舊報告。
 - **畫面沒有樣式。** 只有瀏覽器預設的外觀（見截圖）。brief 假設 11 說版面從簡；
   導覽與外觀排在 Task 8 的檢查清單。若希望之後每個 task 的畫面都有基本樣式，應該
   在 Task 3 的 brief 提出。

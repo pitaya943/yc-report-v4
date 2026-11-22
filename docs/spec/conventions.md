@@ -64,8 +64,17 @@
 | `@money` | 影響薪資金額，回歸測試必跑 |
 | `@concurrency` | 需要真的平行請求 |
 
+## 數字只寫一次
+
+全規格的總數（feature、規則、scenario、例子）與「已開啟幾條規則」只寫在
+[`index.md`](index.md)。其他現行文件要提到全部規則或全部例子時，不寫數字。各個 task 的
+`brief.md`、`reports/` 與 `spec-baseline-diff.md` 是當時的紀錄，寫的是當時為真的數字，
+之後規格增減時不回頭修改，檢查工具也不檢查它們的總數。
+
 ## 檢查
 
 `tools/check_spec.py` 檢查每個 feature 檔是合法的 Gherkin、feature 標籤與檔名一致、
 同一個 feature 裡沒有同名的 scenario、規則 ID 不重複、每個 feature 都被所屬領域的索引
-連結，而且總數與 `index.md` 記錄的一致。用法見 `index.md` 的「檢查這份規格」。
+連結，而且每一處寫出來的數字都與 feature 檔一致：`index.md` 的總數與各領域的數量、每一張
+列出 feature 的表、現行文件裡提到總數的句子，以及「已開啟幾條規則」與
+`tests/implemented_rules.txt` 的行數。用法見 `index.md` 的「檢查這份規格」。

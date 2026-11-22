@@ -339,7 +339,7 @@ argon2id（`argon2-cffi`）。`standard` 用套件的預設參數；`fast` 用�
 - `tests/implemented_rules.txt` 一行一個規則 ID。收集測試時，規則不在清單上的
   scenario 被標成略過，原因是「尚未建置：<規則 ID>」；在清單上的照常執行，缺步驟
   就是失敗。
-- 一個測試確認收集到的例子總數等於 `tools/check_spec.py` 算出的 502：pytest-bdd 會
+- 一個測試確認收集到的例子總數等於 `tools/check_spec.py` 算出的例子總數：pytest-bdd 會
   無聲地丟掉同名的 scenario，這個測試會抓到。
 - 一個測試確認清單上的每個 ID 都真的存在於規格，而且清單沒有重複。
 

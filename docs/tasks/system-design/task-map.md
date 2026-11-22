@@ -155,7 +155,7 @@ brief 要帶給 owner 決定的未決問題：OQ-21、OQ-22、OQ-23。
 | [AUD-F02 稽核軌跡](../../spec/audit/AUD-F02-audit-trail.feature) | 5 | 9 | 24 |
 | [AUD-F01 每個動作都重新檢查權限](../../spec/audit/AUD-F01-authorization-on-every-action.feature)（AUD-R02、AUD-R03） | 2 | 2 | 21 |
 
-feature 以外要交付的：稽核紀錄的查閱頁；權限總表的逐格測試；附錄 D 的檢查清單（分頁、顏色、導覽、回饋）；負載測試；全部 137 條規則都在已建置清單上。
+feature 以外要交付的：稽核紀錄的查閱頁；權限總表的逐格測試；附錄 D 的檢查清單（分頁、顏色、導覽、回饋）；負載測試；全部規則都在已建置清單上。
 
 brief 要帶給 owner 決定的未決問題：OQ-10、OQ-13。
 

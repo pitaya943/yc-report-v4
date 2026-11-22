@@ -16,7 +16,18 @@ It fails (exit status 1) when:
     the totals in docs/spec/index.md (both the comment and the sentence a
     person reads), the per-area counts in its table, every table row that
     starts with a link to a feature file followed by its rule, scenario and
-    case counts, and every bold totals row.
+    case counts, and every bold totals row;
+  * a sentence anywhere under docs/ states a total in one of the checked
+    wordings ("N 條規則中", "全部 N 條規則", "全部 N 條都在", "全部 N 個例子",
+    "規格有 N 條規則",
+    "N 個 feature、N 條規則、N 個 scenario、N 個例子") and the number is wrong;
+  * the spec says "已開啟 N 條" and N is not the number of rule IDs listed in
+    tests/implemented_rules.txt, or that list names a rule the spec lacks.
+
+Records of a moment are not checked for totals, because they say what was
+true when they were written and must stay as written when the spec grows:
+each task's brief.md, its reports/, and spec-baseline-diff.md. Everything else
+under docs/ is a living document and is checked.
 
 A "case" is one runnable example: a plain Scenario counts as one, a Scenario
 Outline counts once per Examples row.
@@ -55,6 +66,67 @@ FEATURE_ROW_RE = re.compile(
 TOTALS_ROW_RE = re.compile(
     r"\*\*合計\*\* \| \*\*(\d+)\*\* \| \*\*(\d+)\*\* \| \*\*(\d+)\*\* \| \*\*(\d+)\*\*"
 )
+
+
+IMPLEMENTED = Path("tests/implemented_rules.txt")
+# Wordings that state a total of the whole spec, and which total each states.
+TOTAL_WORDINGS = [
+    (re.compile(r"(\d+) 條規則中"), ("rules",)),
+    (re.compile(r"全部 (\d+) 條(?:規則|都在)"), ("rules",)),
+    (re.compile(r"規格有 (\d+) 條規則"), ("rules",)),
+    (re.compile(r"全部 (\d+) 個例子"), ("cases",)),
+    (
+        re.compile(r"(\d+) 個 feature、(\d+) 條規則、(\d+) 個 scenario、(\d+) 個(?:可執行的)?例子"),
+        ("features", "rules", "scenarios", "cases"),
+    ),
+]
+OPEN_RULES_RE = re.compile(r"已開啟 (\d+) 條")
+
+
+def is_record(path: Path) -> bool:
+    """A record says what was true when it was written; its totals are not checked."""
+    parts = path.parts
+    return path.name in ("brief.md", "spec-baseline-diff.md") or "reports" in parts
+
+
+def check_sentences(found, rule_ids, problems):
+    """Totals stated in prose, and the count of rules the spec says are built."""
+    totals = dict(zip(("features", "rules", "scenarios", "cases"), found))
+    for path in sorted(DOCS.rglob("*.md")):
+        if is_record(path):
+            continue
+        text = path.read_text(encoding="utf-8")
+        for wording, names in TOTAL_WORDINGS:
+            for match in wording.finditer(text):
+                for name, written in zip(names, match.groups()):
+                    if int(written) != totals[name]:
+                        problems.append(
+                            f"{path}: 「{match.group(0)}」 states {written} {name}, "
+                            f"but the feature files contain {totals[name]}"
+                        )
+
+    built: list[str] = []
+    if IMPLEMENTED.exists():
+        built = [
+            line.strip()
+            for line in IMPLEMENTED.read_text(encoding="utf-8").splitlines()
+            if line.strip() and not line.startswith("#")
+        ]
+    for rule_id in built:
+        if rule_id not in rule_ids:
+            problems.append(f"{IMPLEMENTED}: {rule_id} is listed as built but no rule in the spec has that ID")
+    stated = [
+        (path, int(match.group(1)))
+        for path in sorted(SPEC.rglob("*.md"))
+        for match in OPEN_RULES_RE.finditer(path.read_text(encoding="utf-8"))
+    ]
+    if built and not stated:
+        problems.append(f"{SPEC}/index.md: {len(built)} rules are listed as built but the spec does not say how many are")
+    for path, written in stated:
+        if written != len(set(built)):
+            problems.append(
+                f"{path}: says 已開啟 {written} 條, but {IMPLEMENTED} lists {len(set(built))} rules"
+            )
 
 
 def check_written_numbers(per_feature, found, problems):
@@ -200,6 +272,7 @@ def main() -> int:
         )
 
     check_written_numbers(per_feature, found, problems)
+    check_sentences(found, rule_ids, problems)
 
     for problem in problems:
         print("PROBLEM:", problem)
