@@ -71,10 +71,15 @@
 `brief.md`、`reports/` 與 `spec-baseline-diff.md` 是當時的紀錄，寫的是當時為真的數字，
 之後規格增減時不回頭修改，檢查工具也不檢查它們的總數。
 
+檢查工具會擋下現行文件裡常見的總數寫法（例如「全部 N 條規則」「共 N 個例子」，以及
+任何「N 個 feature」），但句型是一份清單，不是證明：用清單以外的寫法寫出總數不會被
+發現。所以規則是不寫，而不是寫了再靠工具抓。要提到一部分 feature 的數量時，放在表格
+裡，或不用阿拉伯數字。
+
 ## 檢查
 
 `tools/check_spec.py` 檢查每個 feature 檔是合法的 Gherkin、feature 標籤與檔名一致、
 同一個 feature 裡沒有同名的 scenario、規則 ID 不重複、每個 feature 都被所屬領域的索引
 連結，而且每一處寫出來的數字都與 feature 檔一致：`index.md` 的總數與各領域的數量、每一張
-列出 feature 的表、現行文件裡提到總數的句子，以及「已開啟幾條規則」與
+列出 feature 的表、全 repo 現行文件裡以常見寫法提到總數的句子，以及「已開啟幾條規則」與
 `tests/implemented_rules.txt` 的行數。用法見 `index.md` 的「檢查這份規格」。

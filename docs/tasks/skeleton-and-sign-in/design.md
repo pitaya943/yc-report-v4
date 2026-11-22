@@ -334,8 +334,8 @@ argon2id（`argon2-cffi`）。`standard` 用套件的預設參數；`fast` 用�
 
 ### 11.2 規格的 feature 直接執行
 
-- pytest-bdd，`bdd_features_base_dir = docs/spec`；`tests/test_spec.py` 收進全部 31
-  個 feature。
+- pytest-bdd，`bdd_features_base_dir = docs/spec`；`tests/test_spec.py` 收進全部的
+  feature。
 - `tests/implemented_rules.txt` 一行一個規則 ID。收集測試時，規則不在清單上的
   scenario 被標成略過，原因是「尚未建置：<規則 ID>」；在清單上的照常執行，缺步驟
   就是失敗。
@@ -347,7 +347,7 @@ argon2id（`argon2-cffi`）。`standard` 用套件的預設參數；`fast` 用�
 
 ### 11.3 共用步驟是公開介面
 
-`tests/steps/common/` 的步驟給全部領域用。寫之前先把 31 個 feature 裡所有步驟文字
+`tests/steps/common/` 的步驟給全部領域用。寫之前先把全部 feature 裡所有步驟文字
 列出來，找出跨領域重複的句型，一次設計完；之後的 task 只能新增，不能改既有步驟的
 意義。至少包含：
 

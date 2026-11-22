@@ -17,17 +17,21 @@ It fails (exit status 1) when:
     person reads), the per-area counts in its table, every table row that
     starts with a link to a feature file followed by its rule, scenario and
     case counts, and every bold totals row;
-  * a sentence anywhere under docs/ states a total in one of the checked
-    wordings ("N 條規則中", "全部 N 條規則", "全部 N 條都在", "全部 N 個例子",
-    "規格有 N 條規則",
-    "N 個 feature、N 條規則、N 個 scenario、N 個例子") and the number is wrong;
+  * a sentence in a living document states a total in one of the checked
+    wordings and the number is wrong. The wordings are listed in
+    TOTAL_WORDINGS below; "N 個 feature" on its own is one of them, so a
+    count of some features belongs in a table or is written without a digit;
   * the spec says "已開啟 N 條" and N is not the number of rule IDs listed in
     tests/implemented_rules.txt, or that list names a rule the spec lacks.
 
 Records of a moment are not checked for totals, because they say what was
 true when they were written and must stay as written when the spec grows:
-each task's brief.md, its reports/, and spec-baseline-diff.md. Everything else
-under docs/ is a living document and is checked.
+each task's brief.md, its reports/, and spec-baseline-diff.md. Every other
+Markdown file in the repository is a living document and is checked.
+
+The wordings are a list, not a proof: a total written in a wording that is
+not on the list is not caught. The rule that keeps this small is in
+docs/spec/conventions.md: the totals are written only in docs/spec/index.md.
 
 A "case" is one runnable example: a plain Scenario counts as one, a Scenario
 Outline counts once per Examples row.
@@ -74,7 +78,13 @@ TOTAL_WORDINGS = [
     (re.compile(r"(\d+) 條規則中"), ("rules",)),
     (re.compile(r"全部 (\d+) 條(?:規則|都在)"), ("rules",)),
     (re.compile(r"規格有 (\d+) 條規則"), ("rules",)),
+    (re.compile(r"(?:共有?|總共) ?(\d+) 條規則"), ("rules",)),
     (re.compile(r"全部 (\d+) 個例子"), ("cases",)),
+    (re.compile(r"(?:共有?|總共) ?(\d+) 個例子"), ("cases",)),
+    (re.compile(r"(?:全部|共有?|總共) ?(\d+) 個 scenario"), ("scenarios",)),
+    # On its own, with or without 全部 in front: features are never counted in
+    # prose outside the spec's front page.
+    (re.compile(r"(\d+) 個 feature(?!、)"), ("features",)),
     (
         re.compile(r"(\d+) 個 feature、(\d+) 條規則、(\d+) 個 scenario、(\d+) 個(?:可執行的)?例子"),
         ("features", "rules", "scenarios", "cases"),
@@ -89,12 +99,20 @@ def is_record(path: Path) -> bool:
     return path.name in ("brief.md", "spec-baseline-diff.md") or "reports" in parts
 
 
+def living_documents() -> list[Path]:
+    """Every Markdown file in the repository that is not a record of a moment."""
+    skipped = {".git", ".venv", "node_modules", "worktrees"}
+    return [
+        path
+        for path in sorted(Path(".").rglob("*.md"))
+        if not skipped.intersection(path.parts) and not is_record(path)
+    ]
+
+
 def check_sentences(found, rule_ids, problems):
     """Totals stated in prose, and the count of rules the spec says are built."""
     totals = dict(zip(("features", "rules", "scenarios", "cases"), found))
-    for path in sorted(DOCS.rglob("*.md")):
-        if is_record(path):
-            continue
+    for path in living_documents():
         text = path.read_text(encoding="utf-8")
         for wording, names in TOTAL_WORDINGS:
             for match in wording.finditer(text):
@@ -110,7 +128,9 @@ def check_sentences(found, rule_ids, problems):
         built = [
             line.strip()
             for line in IMPLEMENTED.read_text(encoding="utf-8").splitlines()
-            if line.strip() and not line.startswith("#")
+            # Same reading as tests/support/spec.py: strip first, then skip
+            # blank lines and comments, indented ones included.
+            if line.strip() and not line.strip().startswith("#")
         ]
     for rule_id in built:
         if rule_id not in rule_ids:

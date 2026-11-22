@@ -1,6 +1,6 @@
 # 後續 task 地圖
 
-整個系統分成 9 個 task。`system-design` 是第 1 個；第 2 至 8 個建置全部 31 個 feature；
+整個系統分成 9 個 task。`system-design` 是第 1 個；第 2 至 8 個建置全部的 feature；
 第 9 個把成品部署上線。每個 feature 屬於一個 task，只有 `AUD-F01` 例外：它的權限總表
 （AUD-R02）與拒絕紀錄（AUD-R03）要等其他領域的動作存在才驗得了，所以 owner 在核准
 `skeleton-and-sign-in` 的 brief 時同意把它拆成兩段（Task 2 與 Task 8）。每個 task 都會
