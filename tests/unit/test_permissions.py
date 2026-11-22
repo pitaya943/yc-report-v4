@@ -1,3 +1,5 @@
+import threading
+
 import psycopg
 import pytest
 from fastapi import Depends, Request
@@ -119,3 +121,33 @@ def test_other_refusals_of_a_signed_in_actor_write_no_audit_row(client, database
 
     assert response.status_code == 409
     assert recorder.diff(before, recorder.snapshot(database_url)) == []
+
+
+def test_the_refused_request_lets_go_of_its_transaction_before_the_denial_is_recorded(app, client, database_url):
+    # The request holds a lock that the ACCESS_DENIED row needs. Unless its
+    # transaction is rolled back first, the handler waits for itself.
+    @app.post("/_test/lock-then-forbidden")
+    def lock_then_forbidden(request: Request, conn=Depends(connection)):
+        request.state.actor = WEN
+        conn.execute("lock table audit_log in access exclusive mode")
+        authorize(WEN, "tests.admins_only")
+
+    statuses: list[int] = []
+    request = threading.Thread(
+        target=lambda: statuses.append(client.post("/_test/lock-then-forbidden").status_code), daemon=True
+    )
+    request.start()
+    request.join(timeout=10)
+    stuck = request.is_alive()
+    if stuck:
+        with psycopg.connect(database_url, autocommit=True) as conn:
+            conn.execute(
+                "select pg_terminate_backend(pid) from pg_stat_activity"
+                " where datname = current_database() and pid <> pg_backend_pid()"
+            )
+        request.join(timeout=10)
+
+    assert not stuck, "the handler waited for a lock held by the request it was refusing"
+    assert statuses == [403]
+    with psycopg.connect(database_url) as conn:
+        assert conn.execute("select count(*) from audit_log where type = 'ACCESS_DENIED'").fetchone() == (1,)

@@ -74,10 +74,15 @@ def tables(database_url):
     with psycopg.connect(database_url) as conn:
         conn.execute("create table keyed (id integer primary key, body text)")
         conn.execute("create table unkeyed (body text)")
-        conn.execute("create table sessions (id integer primary key, last_used_at timestamptz, ended_at timestamptz)")
         conn.execute("insert into keyed values (1, 'one'), (2, 'two')")
         conn.execute("insert into unkeyed values ('same'), ('same')")
-        conn.execute("insert into sessions values (1, '2026-01-05T09:00:00+08:00', null)")
+        conn.execute(
+            "insert into accounts (display_name, role, zone, password_hash) values ('Wen', 'USER', 'WEST', 'hash')"
+        )
+        conn.execute(
+            "insert into sessions (account_id, token_hash, csrf_token, created_at, last_used_at)"
+            " select id, 'token-hash', 'csrf', '2026-01-05T09:00:00+08:00', '2026-01-05T09:00:00+08:00' from accounts"
+        )
     return database_url
 
 

@@ -1,5 +1,8 @@
+from datetime import datetime, timedelta
+
 import pytest
 
+from app.core.clock import TAIPEI, SystemClock
 from app.core.config import ConfigError, load_settings
 from tests.support.cli import run_app
 
@@ -109,3 +112,23 @@ def test_check_config_reports_storage_and_bank_key_as_configured_without_their_v
     assert "STORAGE_BACKEND：已設定" in lines
     assert "BANK_KEY：已設定" in lines
     assert "very-secret" not in done.stdout + done.stderr
+
+
+@pytest.mark.parametrize("offset", ["99999999999999999999", "-99999999999999999999", "527041"])
+def test_a_clock_offset_too_large_to_apply_is_a_settings_problem(offset):
+    assert problems({"DATABASE_URL": URL, "CLOCK_OFFSET_MINUTES": offset}) == [
+        "CLOCK_OFFSET_MINUTES：必須在 -527040 到 527040 之間（366 天）"
+    ]
+
+
+def test_the_largest_clock_offset_is_accepted_and_applies():
+    settings = load_settings({"DATABASE_URL": URL, "CLOCK_OFFSET_MINUTES": "527040"})
+    assert SystemClock(settings.clock_offset_minutes).now() > datetime.now(TAIPEI) + timedelta(days=365)
+
+
+def test_check_config_names_a_clock_offset_too_large_to_apply():
+    done = run_app("check-config", DATABASE_URL=URL, CLOCK_OFFSET_MINUTES="99999999999999999999")
+
+    assert done.returncode == 2
+    assert "CLOCK_OFFSET_MINUTES" in done.stderr
+    assert "Traceback" not in done.stderr

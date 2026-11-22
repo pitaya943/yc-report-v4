@@ -1,11 +1,11 @@
 """Refusals: the one way to say no, and the one place that turns it into a response."""
 
+from collections.abc import Callable
 from enum import Enum
-from html import escape
 
 from fastapi import FastAPI
 from starlette.requests import Request
-from starlette.responses import HTMLResponse, JSONResponse, Response
+from starlette.responses import JSONResponse, Response
 
 from app.core import audit
 from app.core.db import request_transaction
@@ -70,22 +70,20 @@ def _handle_refusal(request: Request, refusal: Refusal) -> Response:
             )
 
     headers = {"X-Outcome": refusal.outcome.name}
-    status = refusal.outcome.status
     if "application/json" in request.headers.get("accept", ""):
         return JSONResponse(
             {"outcome": refusal.outcome.name, "message": refusal.message},
-            status_code=status,
+            status_code=refusal.outcome.status,
             headers=headers,
         )
-    page = (
-        '<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8">'
-        f"<title>{status}</title></head>"
-        f'<body><main><p role="alert">{escape(refusal.message)}</p></main></body></html>'
-    )
-    return HTMLResponse(page, status_code=status, headers=headers)
+    response = request.app.state.refusal_page(request, refusal)
+    response.headers.update(headers)
+    return response
 
 
-def install(app: FastAPI) -> None:
+def install(app: FastAPI, page: Callable[[Request, Refusal], Response]) -> None:
+    """Handle every Refusal. ``page`` makes the response for a person; it carries the status."""
+    app.state.refusal_page = page
     # A plain def: Starlette runs it in the thread pool, so its database work
     # does not block the event loop.
     app.add_exception_handler(Refusal, _handle_refusal)

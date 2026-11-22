@@ -3,18 +3,30 @@
 import re
 from pathlib import Path
 
+_SQL_FUNCTIONS = (
+    "current_timestamp|current_date|current_time|localtimestamp|localtime"
+    "|clock_timestamp|statement_timestamp|transaction_timestamp|timeofday"
+)
+
 FORBIDDEN = {
     "datetime.now": re.compile(r"\bdatetime\.now\b"),
     "datetime.utcnow": re.compile(r"\butcnow\b"),
+    "datetime.today": re.compile(r"\bdatetime\.today\b"),
     "date.today": re.compile(r"\bdate\.today\b"),
+    # Whatever name the class was imported under: dt.now(), d.today().
+    "now() on something other than the clock": re.compile(r"(?<!clock)(?<!datetime)\.now\s*\("),
+    "today() on something other than date": re.compile(r"(?<!date)(?<!datetime)\.today\s*\("),
     "time.time": re.compile(r"\btime\.time(_ns)?\b"),
+    "time.monotonic": re.compile(r"\btime\.(monotonic|perf_counter|process_time)(_ns)?\b"),
+    "time.localtime": re.compile(r"\btime\.(localtime|gmtime|ctime|asctime|strftime)\b"),
+    # Its functions would then be called by their bare names.
+    "from time import": re.compile(r"\bfrom\s+time\s+import\b"),
     # SQL now(), but not clock.now().
     "SQL now()": re.compile(r"(?<![.\w])now\s*\(\s*\)", re.IGNORECASE),
-    "SQL current_timestamp": re.compile(
-        r"\b(current_timestamp|current_date|current_time|localtimestamp|localtime"
-        r"|clock_timestamp|statement_timestamp|transaction_timestamp)\b",
-        re.IGNORECASE,
-    ),
+    # Not after a dot: time.localtime is Python's.
+    "SQL current_timestamp": re.compile(rf"(?<!\.)\b({_SQL_FUNCTIONS})\b", re.IGNORECASE),
+    # The special input strings: 'now'::timestamptz, date 'today'.
+    "SQL 'now'": re.compile(r"'(now|today|tomorrow|yesterday)'", re.IGNORECASE),
 }
 TEXT_SUFFIXES = {".py", ".sql", ".html", ".txt", ".js"}
 

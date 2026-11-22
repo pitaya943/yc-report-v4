@@ -13,12 +13,19 @@ from app.core.config import ConfigError, Settings, load_settings
 from app.main import create_app
 
 
+class CommandFailed(Exception):
+    """A command could not do its work; the message is what the operator reads."""
+
+
 def _check_config(settings: Settings, clock: SystemClock, args: argparse.Namespace) -> None:
     print("\n".join(settings.describe()))
 
 
 def _migrate(settings: Settings, clock: SystemClock, args: argparse.Namespace) -> None:
-    applied = migrations.migrate(settings.database_url, clock)
+    try:
+        applied = migrations.migrate(settings.database_url, clock)
+    except (migrations.MigrationError, psycopg.Error) as error:
+        raise CommandFailed(f"migration 失敗：{error}") from error
     print("已套用：" + "、".join(applied) if applied else "沒有待套用的 migration")
 
 
@@ -48,8 +55,11 @@ def main(argv: list[str] | None = None) -> int:
 
     try:
         args.run(settings, SystemClock(settings.clock_offset_minutes), args)
-    except (migrations.MigrationError, psycopg.Error) as error:
-        print(f"migration 失敗：{error}", file=sys.stderr)
+    except CommandFailed as error:
+        print(error, file=sys.stderr)
+        return 1
+    except psycopg.Error as error:
+        print(f"資料庫錯誤：{error}", file=sys.stderr)
         return 1
     return 0
 
