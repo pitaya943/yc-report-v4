@@ -100,18 +100,17 @@ class SystemClock:                         # 建構時可給 offset（CLOCK_OFFS
   雜湊與套用時間；已套用的檔案內容被改過就拒絕繼續。套用時先取得一個 advisory lock，
   多個行程同時啟動也只會套用一次。
 - `python -m app serve` 先套用 migration 再啟動伺服器；migration 失敗就不啟動。
+- 待套用的檔案編號若比已套用的還小，`migrate` 會拒絕。並行的 ticket 與 task 新增
+  migration 時，後合併的那一個要把編號改到最後。
 
 ## 5. 拒絕（`core/outcomes.py`）
 
 ```python
 class Outcome(Enum):          # 名稱與 HTTP 狀態來自 docs/spec/conventions.md
-    UNAUTHENTICATED = 401
-    FORBIDDEN = 403
-    INVALID = 422
-    CONFLICT = 409
-    LOCKED = 423
-    RATE_LIMITED = 429
-    BLOCKED = 409
+    UNAUTHENTICATED, FORBIDDEN, INVALID, CONFLICT, LOCKED, RATE_LIMITED, BLOCKED
+    status: int               # 401、403、422、409、423、429、409
+    # 狀態碼是屬性而不是列舉的值：CONFLICT 與 BLOCKED 都是 409，
+    # 用值的話 Python 會把兩者併成同一個成員。
 
 class Refusal(Exception):
     def __init__(self, outcome: Outcome, message: str, *, attempted: str | None = None): ...
@@ -123,7 +122,7 @@ class Refusal(Exception):
 1. 回復這個請求的交易。
 2. `FORBIDDEN` 而且有登入者：另開一個交易，只寫一列 `ACCESS_DENIED`（行為者是登入
    者，說明含 `attempted`）。
-3. 產生回應：狀態碼是 `outcome.value`，標頭 `X-Outcome` 是類別名稱。請求的 `Accept`
+3. 產生回應：狀態碼是 `outcome.status`，標頭 `X-Outcome` 是類別名稱。請求的 `Accept`
    含 `application/json` 時，主體是 `{"outcome": "...", "message": "..."}`；否則是
    頁面，訊息放在 `role="alert"` 的元素裡。
 
@@ -131,6 +130,10 @@ class Refusal(Exception):
 狀態碼仍是 401：使用者看到登入頁與「請重新登入」，測試看到 401。
 
 「找不到」不是結果類別：回 404，不寫稽核（brief 假設 3）。
+
+不只是 `Refusal`：任何狀態碼 400 以上的回應都會回復這個請求的交易。要寫 `ACCESS_DENIED`，
+錯誤處理需要知道登入者是誰，所以解析登入狀態的那一段必須把登入者放在
+`request.state.actor`。
 
 錯誤字串只有一個來源：`docs/spec/reference/appendix-b-fields.md`。有一個測試確認
 `app/` 裡每一個 `Refusal` 的訊息都逐字出現在附錄 B。
