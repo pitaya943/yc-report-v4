@@ -343,7 +343,7 @@ argon2id（`argon2-cffi`）。`standard` 用套件的預設參數；`fast` 用�
   無聲地丟掉同名的 scenario，這個測試會抓到。
 - 一個測試確認清單上的每個 ID 都真的存在於規格，而且清單沒有重複。
 
-本 task 結束時清單上有 11 條：IAM-R01 至 R07、IAM-R10 至 R12、AUD-R01。
+本 task 結束時清單上是 IAM-R01 至 R07、IAM-R10 至 R12、AUD-R01。
 
 ### 11.3 共用步驟是公開介面
 

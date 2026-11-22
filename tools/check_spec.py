@@ -22,11 +22,15 @@ It fails (exit status 1) when:
     TOTAL_WORDINGS below; "N 個 feature" on its own is one of them, so a
     count of some features belongs in a table or is written without a digit;
   * the spec says "已開啟 N 條" and N is not the number of rule IDs listed in
-    tests/implemented_rules.txt, or that list names a rule the spec lacks.
+    tests/implemented_rules.txt, or that list names a rule the spec lacks;
+  * the spec states how many definitions (AD-n) it has and the number is not
+    the number of rows in docs/spec/definitions.md;
+  * a table that lists most of the features leaves one out.
 
 Records of a moment are not checked for totals, because they say what was
 true when they were written and must stay as written when the spec grows:
-each task's brief.md, its reports/, and spec-baseline-diff.md. Every other
+each task's brief.md, plan.md, tickets/ and reports/, and
+spec-baseline-diff.md. Every other
 Markdown file in the repository is a living document and is checked.
 
 The wordings are a list, not a proof: a total written in a wording that is
@@ -54,7 +58,7 @@ COUNTS_RE = re.compile(
 )
 RULE_ID_RE = re.compile(r"^([A-Z]{3}-R\d+)\b")
 DOCS = Path("docs")
-# "共 9 個領域、31 個 feature、137 條規則、254 個 scenario、502 個例子"
+# "共 N 個領域、N 個 feature、N 條規則、N 個 scenario、N 個例子"
 SENTENCE_RE = re.compile(
     r"共 (\d+) 個領域、(\d+) 個 feature、(\d+) 條規則、(\d+) 個 scenario、(\d+) 個例子"
 )
@@ -66,7 +70,7 @@ AREA_ROW_RE = re.compile(r"^\| \[[^\]]+\]\(([a-z]+)/index\.md\)[^|]*\|[^|]*\| (\
 FEATURE_ROW_RE = re.compile(
     r"^\| \[([A-Z]{3}-F\d\d)[^\]]*\]\([^)]*\)[^|]*\| (\d+) \| (\d+) \| (\d+) \|", re.M
 )
-# "| | **合計** | **31** | **137** | **254** | **502** | |"
+# "| | **合計** | **N** | **N** | **N** | **N** | |": features, rules, scenarios, cases
 TOTALS_ROW_RE = re.compile(
     r"\*\*合計\*\* \| \*\*(\d+)\*\* \| \*\*(\d+)\*\* \| \*\*(\d+)\*\* \| \*\*(\d+)\*\*"
 )
@@ -85,18 +89,42 @@ TOTAL_WORDINGS = [
     # On its own, with or without 全部 in front: features are never counted in
     # prose outside the spec's front page.
     (re.compile(r"(\d+) 個 feature(?!、)"), ("features",)),
+    (re.compile(r"(?<!共 )(\d+) 個領域"), ("areas",)),
+    # The same in English, as tickets and code comments write it.
+    (re.compile(r"\b(\d+) feature files\b"), ("features",)),
+    (re.compile(r"\ball (\d+) features\b"), ("features",)),
+    (re.compile(r"\ball (\d+) rules\b"), ("rules",)),
+    (re.compile(r"\ball (\d+) scenarios\b"), ("scenarios",)),
+    (re.compile(r"\ball (\d+) cases\b"), ("cases",)),
     (
         re.compile(r"(\d+) 個 feature、(\d+) 條規則、(\d+) 個 scenario、(\d+) 個(?:可執行的)?例子"),
         ("features", "rules", "scenarios", "cases"),
     ),
 ]
 OPEN_RULES_RE = re.compile(r"已開啟 (\d+) 條")
+# The spec's own definitions (AD-1, AD-2, ...) are counted from the rows of
+# definitions.md; these wordings state how many there are.
+DEFINITIONS = SPEC / "definitions.md"
+DEFINITION_ROW_RE = re.compile(r"^\| AD-\d+ \|", re.M)
+DEFINITION_WORDINGS = [
+    re.compile(r"(\d+) 條定義"),
+    re.compile(r"已同意的 (\d+) 條規則"),
+    re.compile(r"同意全部 (\d+) 條"),
+    re.compile(r"有 (\d+) 個地方"),
+    re.compile(r"定義的 (\d+) 條規則"),
+    # The range of their IDs, as in "AD-1–AD-13".
+    re.compile(r"AD-1–AD-(\d+)"),
+]
 
 
 def is_record(path: Path) -> bool:
     """A record says what was true when it was written; its totals are not checked."""
     parts = path.parts
-    return path.name in ("brief.md", "spec-baseline-diff.md") or "reports" in parts
+    return (
+        path.name in ("brief.md", "plan.md", "spec-baseline-diff.md")
+        or "reports" in parts
+        or "tickets" in parts
+    )
 
 
 def living_documents() -> list[Path]:
@@ -112,6 +140,19 @@ def living_documents() -> list[Path]:
 def check_sentences(found, rule_ids, problems):
     """Totals stated in prose, and the count of rules the spec says are built."""
     totals = dict(zip(("features", "rules", "scenarios", "cases"), found))
+    totals["areas"] = len({path.parent.name for path in SPEC.glob("*/*.feature")})
+    definitions = (
+        len(DEFINITION_ROW_RE.findall(DEFINITIONS.read_text(encoding="utf-8"))) if DEFINITIONS.exists() else 0
+    )
+    for path in sorted(SPEC.rglob("*.md")):
+        text = path.read_text(encoding="utf-8")
+        for wording in DEFINITION_WORDINGS:
+            for match in wording.finditer(text):
+                if int(match.group(1)) != definitions:
+                    problems.append(
+                        f"{path}: 「{match.group(0)}」 states {match.group(1)} definitions, "
+                        f"but {DEFINITIONS} has {definitions} rows"
+                    )
     for path in living_documents():
         text = path.read_text(encoding="utf-8")
         for wording, names in TOTAL_WORDINGS:
@@ -190,6 +231,10 @@ def check_written_numbers(per_feature, found, problems):
             total = sums.setdefault(feature_id, [0, 0, 0])
             for i, value in enumerate((rules, scenarios, cases)):
                 total[i] += int(value)
+        # A table that lists most features is meant to list them all.
+        if len(sums) > len(actual) / 2:
+            for feature_id in sorted(set(actual) - set(sums)):
+                problems.append(f"{path}: lists {len(sums)} of the {len(actual)} features; {feature_id} is missing")
         for feature_id, total in sorted(sums.items()):
             if feature_id not in actual:
                 problems.append(f"{path}: {feature_id} is listed but there is no such feature file")

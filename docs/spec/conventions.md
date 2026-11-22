@@ -68,7 +68,7 @@
 
 全規格的總數（feature、規則、scenario、例子）與「已開啟幾條規則」只寫在
 [`index.md`](index.md)。其他現行文件要提到全部規則或全部例子時，不寫數字。各個 task 的
-`brief.md`、`reports/` 與 `spec-baseline-diff.md` 是當時的紀錄，寫的是當時為真的數字，
+`brief.md`、`plan.md`、`tickets/`、`reports/` 與 `spec-baseline-diff.md` 是當時的紀錄，寫的是當時為真的數字，
 之後規格增減時不回頭修改，檢查工具也不檢查它們的總數。
 
 檢查工具會擋下現行文件裡常見的總數寫法（例如「全部 N 條規則」「共 N 個例子」，以及

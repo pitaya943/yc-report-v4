@@ -3,9 +3,10 @@
 依我自己的檢查，brief 的 14 個情境（S-1 至 S-14）全部達成。S-12 的容器映像由 owner 加入的
 CI 在 GitHub 上建置並啟動來證明（issue #7，owner 選的做法）。
 
-這是第三版。前兩次最終驗證（commit `4fc0563`、`358b858`）都判定 FAIL，兩次都只有 S-14 的
-第一項不成立，其餘 13 個情境兩次都通過。owner 於 2026-11-22 同意把 S-14 的第一項改寫成
-做得到的保證（見 brief），這一版依改寫後的 S-14 修正。三版之間沒有改動任何程式行為。
+這是第四版。前三次最終驗證（commit `4fc0563`、`358b858`、`4727b8a`）都判定 FAIL，三次都
+只有 S-14 的第一項不成立，其餘 13 個情境三次都通過。owner 於 2026-11-22 同意把 S-14 的
+第一項改寫成做得到的保證（見 brief），並在第三次失敗後同意再修一輪。四版之間沒有改動
+任何程式行為。
 
 追蹤 issue：#6。Brief：[`brief.md`](../brief.md)。設計：[`design.md`](../design.md)。
 
@@ -107,11 +108,11 @@ CI 在 GitHub 上建置並啟動來證明（issue #7，owner 選的做法）。
 | S-11 本機啟動並用瀏覽器登入 | 是 | `tests/browser/`；`.claude/skills/try-yc-report/`；PR #12 的 verdict 照 README 走過一次 |
 | S-12 成品可以被部署 | 是 | [CI 第 1 次執行](https://github.com/pitaya943/yc-report-v4/actions/runs/45004197644)（commit `504cbd5`）的 `image` job 每一步都成功：建置映像、映像不是以 root 執行、缺 `DATABASE_URL` 時拒絕啟動並指名、以正式設定啟動後 `/health` 回 200。其餘部分（設定檢查、`serve` 先更新資料庫結構、`/status`）見 PR #8、#12 的 verdict |
 | S-13 第一位 owner 由指令建立 | 是 | `create-owner` 的測試；PR #12 的 verdict |
-| S-14 上一個 task 留下的問題已處理 | 是（依 owner 同意改寫後的 S-14） | 規格的總數只寫在 `docs/spec/index.md`；`tools/check_spec.py` 核對那裡的每個數字、每一張列出 feature 的表、已開啟的規則數（對 `tests/implemented_rules.txt`），並擋下全 repo 現行文件裡常見的總數寫法。弄壞的紀錄在 PR 的 Ready 留言。其餘三項：`spec-baseline-diff.md` 的新章節；系統設計 9.3 與 9.7；附錄 B 的六個字串 |
+| S-14 上一個 task 留下的問題已處理 | 是（依 owner 同意改寫後的 S-14） | 規格的總數只寫在 `docs/spec/index.md`；`tools/check_spec.py` 核對那裡的每個數字、每一張列出 feature 的表、已開啟的規則數（對 `tests/implemented_rules.txt`），規格自己的定義數（對 `definitions.md` 的列數），並擋下全 repo 現行文件裡常見的總數寫法（中文與英文）；列出大多數 feature 的表漏掉一個也會失敗。弄壞的紀錄在 PR 的 Ready 留言。其餘三項：`spec-baseline-diff.md` 的新章節；系統設計 9.3 與 9.7；附錄 B 的六個字串 |
 
 ## 我自己做的決定
 
-完整的紀錄在 [`trail.tsv`](../trail.tsv)（Chief 與五位 builder 共 106 列）。owner 最可能
+完整的紀錄在 [`trail.tsv`](../trail.tsv)（Chief 與五位 builder 共 110 列）。owner 最可能
 想知道的：
 
 | 決定 | 原因 |
@@ -144,17 +145,19 @@ CI 在 GitHub 上建置並啟動來證明（issue #7，owner 選的做法）。
 - **CI 有一則警告**：`actions/checkout@v4` 等三個 action 使用的 Node.js 20 已被標為
   過時，目前被強制改用 Node.js 24 執行。之後要把這些 action 升到新版；`.github/` 下
   的檔案要由 owner 修改。
-- **最終驗證失敗了兩次，都在 S-14 的第一項，都是 Chief 自己的工作。** 原本的寫法是
-  「規格的總數不論寫在哪裡，改錯任何一處檢查都會失敗」。第一次：規則總數 137 還寫在
-  檢查不到的句子裡，其中一句是本 task 自己加進規格首頁的；「已開啟 11 條」也沒有東西
-  核對。第二次：修了 137 與 502，卻留下同一類的 feature 總數 31（8 處）。這是上一個
-  task 記下的 pitfall 2 第二、第三次發生，而且發生在修正它的工作裡。
+- **最終驗證失敗了三次，都在 S-14 的第一項，都是 Chief 自己的工作。** 第一次：規則總數
+  137 還寫在檢查不到的句子裡，其中一句是本 task 自己加進規格首頁的；「已開啟 11 條」
+  也沒有東西核對。第二次：修了 137 與 502，卻留下同一類的 feature 總數 31。第三次：
+  規格首頁的領域數寫了兩次、只檢查一處，一張 ticket 裡還有英文寫的 feature 總數。
+  三次的共同原因是每次只修驗證者點名的地方，沒有自己把同一類全部找出來。第四版先用
+  程式列出所有現行文件裡「數字加上領域、feature、規則、scenario、例子、定義」的寫法，
+  逐行處理，再讓工具核對它們。這是上一個 task 記下的 pitfall 2 反覆發生。
 - **改寫後的 S-14 不是絕對的保證，這是刻意的。** 句型比對是一份清單：用清單以外的
   寫法寫出總數不會被發現（第二次驗證示範過）。所以規則改成「總數只寫在規格首頁，其他
   現行文件不寫」，寫在 `docs/spec/conventions.md`；工具核對首頁、表格與已開啟的規則數，
   並擋下常見的寫法，包含任何「N 個 feature」。
-- **當時的紀錄不檢查總數。** 每個 task 的 `brief.md`、`reports/` 與
-  `spec-baseline-diff.md` 寫的是當時為真的數字，之後規格增減時不該回頭修改。第二次
+- **當時的紀錄不檢查總數。** 每個 task 的 `brief.md`、`plan.md`、`tickets/`、`reports/`
+  與 `spec-baseline-diff.md` 寫的是當時為真的數字，之後規格增減時不該回頭修改。第二次
   驗證接受這一點，並留給 owner 決定。
 - **畫面沒有樣式。** 只有瀏覽器預設的外觀（見截圖）。brief 假設 11 說版面從簡；
   導覽與外觀排在 Task 8 的檢查清單。若希望之後每個 task 的畫面都有基本樣式，應該
@@ -179,8 +182,8 @@ CI 在 GitHub 上建置並啟動來證明（issue #7，owner 選的做法）。
   執行；CI 用的是另一條路徑（外部的資料庫服務）。
 - **合併 T-03 與 T-04 的那個 commit 沒有經過單張 ticket 的驗證**，只有 Chief 跑過
   完整測試；最終驗證涵蓋它。
-- **預算。** owner 把時間預算延長 30 分鐘（共 4 小時 30 分）；session 用了 13 個（共 16）：
-  5 個 builder、5 個 ticket 驗證、3 個最終驗證。
+- **預算。** owner 把時間預算延長 30 分鐘（共 4 小時 30 分）；session 用了 14 個（共 16）：
+  5 個 builder、5 個 ticket 驗證、4 個最終驗證。
 - **過程中碰到用量上限**（約 00:31 至 02:10 UTC 全部 session 中斷）。沒有遺失
   工作；時間預算依 owner 的決定以實際工作時間計算。
 
