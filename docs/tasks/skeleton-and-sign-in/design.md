@@ -279,8 +279,14 @@ task 用得到的欄位，薪資設定等欄位由 Task 4 以新的 migration �
 - 取得目前登入者：以 cookie 找到未結束的 session；`last_used_at` 加 30 分鐘小於等於
   現在就是逾時（剛好 30 分鐘整也算逾時），標記結束並當作未登入；帳戶已封存也當作
   未登入。否則把 `last_used_at` 更新為現在。只有這個函式會延長閒置時間。
+- 這個函式用自己的交易（不是請求的交易），做完就提交：請求之後被拒絕而回復時，
+  「用過」與「逾時而結束」都留著。所以被拒絕的操作也算使用，逾時的 session 即使時鐘
+  被調回去也不能再用。它由一個掛在整個應用程式上的相依函式（`web.guard_session`）在
+  每個 route 之前呼叫，早於 route 取得請求的連線，所以不會有請求握著一條連線等另一
+  條。沒有對應 route 的請求（404、靜態檔）不解析 session，也就不延長閒置時間。
 - 一個人可以同時有多個 session，各自計算閒置時間。
-- 登出：把這個 session 標記結束，清掉 cookie，顯示登入頁與「您已登出」。
+- 登出：把這個 session 標記結束，清掉 cookie，轉到 `/sign-in?signed-out`，登入頁在
+  那個網址顯示「您已登出」（提示，`role="status"`，不是拒絕）。只結束這一個 session。
 - 未登入而要求受保護的頁面或動作：`UNAUTHENTICATED`「請重新登入」，不寫稽核
   （AUD-R01）。
 
@@ -290,10 +296,14 @@ task 用得到的欄位，薪資設定等欄位由 Task 4 以新的 migration �
 放在標頭 `X-CSRF-Token`（共用版型以 `hx-headers` 統一加上），或表單欄位
 `csrf_token`（給不經過 HTMX 的一般表單，例如登出）。沒有或不符：
 `Refusal(FORBIDDEN, "請求未通過驗證", attempted=方法與路徑)`，因此會寫一列
-`ACCESS_DENIED`（IAM-R12）。檢查寫在一處（共用的相依函式），各頁不需要自己記得。
+`ACCESS_DENIED`（IAM-R12）。檢查寫在一處（`web.guard_session`，掛在整個應用程式上，
+之後的 task 新增的 route 自動適用），各頁不需要自己記得。標頭與表單欄位之外的地方
+（網址參數、JSON 主體）不算。
 
-`POST /sign-in` 沒有登入狀態，不檢查；`SameSite=Lax` 已經擋掉跨站送出的表單帶上
-cookie。
+`POST /sign-in` 不檢查，即使瀏覽器還帶著一個有效的 session（例如另一個分頁開著的
+登入頁，它沒有憑證可帶）：登入是開始一個新的 session，不是舊 session 的動作；
+`SameSite=Lax` 已經擋掉跨站送出的表單帶上 cookie。這是唯一的例外，寫在
+`web._NO_TOKEN_NEEDED`。
 
 ### 9.5 密碼雜湊
 

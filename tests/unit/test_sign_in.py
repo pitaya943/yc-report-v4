@@ -277,4 +277,5 @@ def test_any_protected_action_means_every_route_except_the_public_ones(app, worl
         ("GET", "/reports"),
         ("GET", "/review"),
         ("POST", "/_test/things/1/parts/1"),
+        ("POST", "/sign-out"),
     ]

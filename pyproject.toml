@@ -20,7 +20,13 @@ dependencies = [
 dev = [
     "pytest>=9,<10",
     "httpx2>=2.16,<3",
-    "pytest-bdd>=9,<10",
+    # Exact: the harness uses names pytest-bdd does not document
+    # (scenario_wrapper_template_registry and registry_get_safe in
+    # tests/conftest.py, the "pytestbdd_stepdef" prefix in
+    # tests/steps/__init__.py, step_function_context_registry and get_features
+    # in tests/unit), and any release may rename them. Raise the pin on purpose
+    # and run the suite.
+    "pytest-bdd==9.0.1",
     # The same parser tools/check_spec.py uses (tools/requirements.txt).
     "gherkin-official==43.0.0",
 ]

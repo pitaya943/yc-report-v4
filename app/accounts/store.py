@@ -22,6 +22,14 @@ class Credentials:
     password_hash: str
 
 
+@dataclass(frozen=True)
+class Session:
+    id: int
+    actor: Actor
+    csrf_token: str
+    last_used_at: datetime
+
+
 def names_in_group(conn: Connection, group: str) -> list[str]:
     """The display names of the group's accounts that are not archived, in name order."""
     rows = conn.execute(
@@ -65,11 +73,28 @@ def insert_session(
     )
 
 
-def actor_of_session(conn: Connection, token_hash: str) -> Actor | None:
-    """Whose session this is, if it has not ended and the account is not archived."""
+def lock_open_session(conn: Connection, token_hash: str) -> Session | None:
+    """The session with this token, if it has not ended and the account is not archived.
+
+    The row stays locked until the transaction ends, so two requests of one
+    session read and move ``last_used_at`` one after the other.
+    """
     row = conn.execute(
-        "select a.id, a.display_name, a.role from sessions s join accounts a on a.id = s.account_id"
-        " where s.token_hash = %s and s.ended_at is null and a.archived_at is null",
+        "select s.id, s.csrf_token, s.last_used_at, a.id, a.display_name, a.role"
+        " from sessions s join accounts a on a.id = s.account_id"
+        " where s.token_hash = %s and s.ended_at is null and a.archived_at is null"
+        " for update of s",
         (token_hash,),
     ).fetchone()
-    return Actor(*row) if row else None
+    if row is None:
+        return None
+    session_id, csrf_token, last_used_at, *account = row
+    return Session(session_id, Actor(*account), csrf_token, last_used_at)
+
+
+def touch_session(conn: Connection, session_id: int, at: datetime) -> None:
+    conn.execute("update sessions set last_used_at = %s where id = %s", (at, session_id))
+
+
+def end_session(conn: Connection, session_id: int, at: datetime) -> None:
+    conn.execute("update sessions set ended_at = %s where id = %s", (at, session_id))

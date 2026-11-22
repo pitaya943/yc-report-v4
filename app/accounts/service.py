@@ -2,6 +2,7 @@
 
 import hashlib
 import secrets
+from datetime import timedelta
 
 from psycopg import Connection
 
@@ -13,6 +14,8 @@ from app.core.permissions import Actor
 
 GROUP_LABELS = {"admin": "管理員", "west": "西區", "south": "南區"}
 LANDING_PAGES = {"USER": "/reports", "ADMIN": "/review", "OWNER": "/review"}
+# A session not used for this long has timed out; exactly this long counts.
+IDLE_LIMIT = timedelta(minutes=30)
 
 
 def names_for_group(conn: Connection, group: str | None) -> list[str]:
@@ -58,9 +61,25 @@ def sign_in(
     return credentials.actor, token
 
 
-def actor_of_token(conn: Connection, token: str) -> Actor | None:
-    """The person a session token belongs to, or None when it is no longer good."""
-    return store.actor_of_session(conn, _token_hash(token))
+def use_session(conn: Connection, clock: Clock, token: str) -> store.Session | None:
+    """The session a token belongs to, or None when it is no longer good.
+
+    Using a session restarts its idle window, and nothing else does. One found
+    idle for too long is ended for good.
+    """
+    session = store.lock_open_session(conn, _token_hash(token))
+    if session is None:
+        return None
+    now = clock.now()
+    if session.last_used_at + IDLE_LIMIT <= now:
+        store.end_session(conn, session.id, now)
+        return None
+    store.touch_session(conn, session.id, now)
+    return session
+
+
+def sign_out(conn: Connection, clock: Clock, session: store.Session) -> None:
+    store.end_session(conn, session.id, clock.now())
 
 
 def create_account(
