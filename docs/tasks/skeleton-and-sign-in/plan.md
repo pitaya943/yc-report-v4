@@ -16,4 +16,9 @@
 Session 預算（16）：5 個 builder、5 個 ticket 驗證、1 個最終驗證，共 11；剩下 5 個留給
 修正輪（一輪是 1 個 builder 加 1 個驗證）。
 
-S-12 的「建置容器映像」在這個環境做不到，等 owner 在 issue #7 的決定。
+## 結果
+
+T-01 至 T-05 各自通過獨立驗證（PR #8 至 #12）並合併進 `task/skeleton-and-sign-in`；
+C-1 完成。S-12 的容器映像由 owner 加入的 CI 證明（issue #7，第 1 次執行通過）。
+用了 5 個 builder 與 5 個 ticket 驗證，沒有修正輪；各張 ticket 驗證留下的較小問題
+寫進下一張 ticket 一起處理。

@@ -1,8 +1,7 @@
 # skeleton-and-sign-in：最終報告
 
-**草稿。** 依我自己的檢查，brief 的 14 個情境中 13 個已達成；S-12（成品可以被部署）的
-「建置容器映像並啟動」還沒有被證明，要等 owner 把 CI 工作流程檔加進分支、`image` job
-跑出結果（issue #7）。在那之前不會開進 `main` 的 pull request，這份報告也會再更新。
+依我自己的檢查，brief 的 14 個情境（S-1 至 S-14）全部達成。S-12 的容器映像由 owner 加入的
+CI 在 GitHub 上建置並啟動來證明（issue #7，owner 選的做法）。
 
 追蹤 issue：#6。Brief：[`brief.md`](../brief.md)。設計：[`design.md`](../design.md)。
 
@@ -66,7 +65,8 @@
    CLOCK_OFFSET_MINUTES=30 .venv/bin/python -m app serve
    ```
 
-6. 執行測試：應該看到 `389 passed, 472 skipped`。
+6. 執行測試：應該看到 `389 passed, 472 skipped`（沒有安裝 Node 與 Playwright 時，
+   瀏覽器的 2 個測試會被略過並印出原因）。
 
    ```bash
    .venv/bin/python -m pytest
@@ -101,13 +101,13 @@
 | S-9 沒登入進不了受保護的頁面 | 是 | AUD-R01；PR #9 的 verdict |
 | S-10 規格的例子自動執行 | 是 | `tests/test_spec.py`、`tests/implemented_rules.txt`；PR #9 的 verdict（加入未建置的規則會失敗、同名 scenario 會被抓到） |
 | S-11 本機啟動並用瀏覽器登入 | 是 | `tests/browser/`；`.claude/skills/try-yc-report/`；PR #12 的 verdict 照 README 走過一次 |
-| S-12 成品可以被部署 | 尚未：等 CI 的 `image` job | 已證明的部分：設定檢查、`serve` 先更新資料庫結構、`/health`、`/status`（PR #8、#12 的 verdict）。未證明：映像的建置與啟動（issue #7） |
+| S-12 成品可以被部署 | 是 | [CI 第 1 次執行](https://github.com/pitaya943/yc-report-v4/actions/runs/45004197644)（commit `504cbd5`）的 `image` job 每一步都成功：建置映像、映像不是以 root 執行、缺 `DATABASE_URL` 時拒絕啟動並指名、以正式設定啟動後 `/health` 回 200。其餘部分（設定檢查、`serve` 先更新資料庫結構、`/status`）見 PR #8、#12 的 verdict |
 | S-13 第一位 owner 由指令建立 | 是 | `create-owner` 的測試；PR #12 的 verdict |
 | S-14 上一個 task 留下的問題已處理 | 是 | `tools/check_spec.py`（改錯任何一處數字都失敗，trail 有四種弄壞的紀錄）；`spec-baseline-diff.md` 的新章節；系統設計 9.3 與 9.7；附錄 B 的六個字串 |
 
 ## 我自己做的決定
 
-完整的紀錄在 [`trail.tsv`](../trail.tsv)（Chief 與五位 builder 共 97 列）。owner 最可能
+完整的紀錄在 [`trail.tsv`](../trail.tsv)（Chief 與五位 builder 共 99 列）。owner 最可能
 想知道的：
 
 | 決定 | 原因 |
@@ -130,8 +130,15 @@
 
 ## 沒做到或有疑慮的
 
-- **容器映像還沒有被建置過。** 這個環境沒有 Docker；`Dockerfile` 與 CI 工作流程檔都只
-  被讀過、沒有執行過。證明要來自 owner 加入工作流程檔之後 GitHub 上的 `image` job。
+- **容器映像只在 CI 上建置與啟動過，沒有部署到任何平台。** CI 的 `image` job 第一次
+  執行就通過；它證明映像建得起來、能以正式設定啟動並連上資料庫。在 Railway 上的
+  實際行為（平台給的埠、代理、休眠）要到部署 task 才知道。
+- **CI 的三個 job 目前不是合併的必要條件。** 工作流程會在 pull request 與 `task/**`
+  分支上執行，但 `main` 的保護規則沒有要求它通過。要不要設成必要檢查由 owner 在
+  repository 設定裡決定。
+- **CI 有一則警告**：`actions/checkout@v4` 等三個 action 使用的 Node.js 20 已被標為
+  過時，目前被強制改用 Node.js 24 執行。之後要把這些 action 升到新版；`.github/` 下
+  的檔案要由 owner 修改。
 - **畫面沒有樣式。** 只有瀏覽器預設的外觀（見截圖）。brief 假設 11 說版面從簡；
   導覽與外觀排在 Task 8 的檢查清單。若希望之後每個 task 的畫面都有基本樣式，應該
   在 Task 3 的 brief 提出。
