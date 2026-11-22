@@ -93,6 +93,14 @@ class World:
         assert response.status_code == 303, f"{name} could not sign in: {response.status_code} {response.text}"
         self.sessions[name] = response.cookies[SESSION_COOKIE]
 
+    def prepare(self, method: str, path: str, **kwargs) -> Response:
+        """Send a request that sets the scene (a Given), as a visitor.
+
+        It is not one of the scenario's requests: nothing is asserted about its
+        response, and what it writes is there before the action.
+        """
+        return self._request(method, path, **kwargs)
+
     # The action
 
     def send(self, method: str, path: str, *, actor: str | None = None, **kwargs) -> Response:

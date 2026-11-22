@@ -64,7 +64,7 @@ def render(request: Request, template: str, *, status: int = 200, **context: obj
 
 
 def sign_in_page(request: Request, *, status: int = 200, message: str | None = None) -> HTMLResponse:
-    return render(request, "accounts/sign_in.html", status=status, groups=accounts.GROUP_LABELS, message=message)
+    return render(request, "accounts/sign_in.html", status=status, groups=accounts.GROUPS, message=message)
 
 
 def refusal_page(request: Request, refusal: Refusal) -> HTMLResponse:

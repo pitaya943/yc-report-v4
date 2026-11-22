@@ -37,6 +37,7 @@ scenario 會失敗而不是默默略過。
 | 用法 | 意義 |
 | --- | --- |
 | `world.sign_in(name)` | 以該帳戶登入（走真的登入頁），記下它的 session |
+| `world.prepare(method, path, …)` | 以訪客身分送出佈置場景用的請求（給 `Given`）：不算 scenario 的請求，回應不被斷言，它寫入的東西算在「請求之前」 |
 | `world.send(method, path, actor=None, …)` | 送出 scenario 的請求。`actor` 是已登入者的名字，不給就是訪客。第一次呼叫之前的資料庫內容，就是「寫入」的比較基準。拒絕以 JSON 回來（`Accept: application/json`） |
 | `world.open_page(path, actor=None)` | 像瀏覽器一樣看一頁（HTML），用來查看請求造成的結果；不算 scenario 的請求 |
 | `world.responses` | `send` 得到的回應，依序 |

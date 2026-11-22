@@ -19,6 +19,23 @@ def _text(form: FormData, field: str) -> str | None:
     return value if isinstance(value, str) else None
 
 
+def _client_address(request: Request) -> str:
+    """Where the request came from, for the sign-in rate limit.
+
+    With no trusted proxy it is the connection's peer. With n trusted proxies
+    it is the n-th value from the right of X-Forwarded-For, the one the
+    outermost trusted proxy wrote; anything further left came from the client
+    and is never used. A request that did not pass through that many proxies
+    is counted under its peer.
+    """
+    peer = request.client.host if request.client else "unknown"
+    hops = request.app.state.settings.trusted_proxy_hops
+    forwarded = [value.strip() for value in ",".join(request.headers.getlist("x-forwarded-for")).split(",")]
+    if hops == 0 or len(forwarded) < hops or not forwarded[-hops]:
+        return peer
+    return forwarded[-hops]
+
+
 @router.get("/")
 def front_door(request: Request) -> Response:
     actor = web.signed_in_actor(request)
@@ -41,6 +58,7 @@ def sign_in(request: Request, form: FormData = Depends(_form), conn: Connection 
         conn,
         request.app.state.clock,
         request.app.state.passwords,
+        address=_client_address(request),
         group=_text(form, "group"),
         name=_text(form, "name"),
         password=_text(form, "password") or "",
