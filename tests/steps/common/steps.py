@@ -37,7 +37,7 @@ def the_outcome_is(world: World, outcome: str, message: str | None):
     if outcome in outcome_statuses():
         world.assert_rejected(outcome, message)
     elif outcome in SUCCESS_OUTCOMES:
-        assert message is None, "a success has no message to compare"
+        assert not message, "a success has no message to compare"
         SUCCESS_OUTCOMES[outcome](world)
     else:
         raise AssertionError(f"no area has said what the outcome {outcome!r} means")
