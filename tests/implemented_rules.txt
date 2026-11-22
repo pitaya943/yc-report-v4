@@ -1,0 +1,6 @@
+# The rules of docs/spec that are built. One rule ID per line.
+# Scenarios of a listed rule run; all others are skipped as 尚未建置.
+IAM-R01
+IAM-R02
+IAM-R03
+AUD-R01

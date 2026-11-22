@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}{% endblock %}｜YC 日報系統</title>
+  <script src="{{ htmx.url }}" integrity="{{ htmx.integrity }}" defer></script>
+</head>
+<body>
+  <header>
+    <strong>YC 日報系統</strong>
+    {% if actor %}<span id="signed-in-as">{{ actor.name }}（{{ role_labels[actor.role] }}）</span>{% endif %}
+  </header>
+  <main>
+{% block content %}{% endblock %}
+  </main>
+</body>
+</html>

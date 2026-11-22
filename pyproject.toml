@@ -11,16 +11,26 @@ dependencies = [
     "fastapi>=0.165,<1",
     "uvicorn>=0.54,<1",
     "psycopg[binary,pool]>=3.3,<4",
+    "argon2-cffi>=25.1,<26",
+    "jinja2>=3.1,<4",
+    "python-multipart>=0.0.34,<0.1",
 ]
 
 [project.optional-dependencies]
 dev = [
     "pytest>=9,<10",
     "httpx2>=2.16,<3",
+    "pytest-bdd>=9,<10",
+    # The same parser tools/check_spec.py uses (tools/requirements.txt).
+    "gherkin-official==43.0.0",
 ]
 
 [tool.setuptools.packages.find]
 include = ["app*"]
 
+[tool.setuptools.package-data]
+app = ["*/templates/*.html", "core/static/*"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+bdd_features_base_dir = "docs/spec"

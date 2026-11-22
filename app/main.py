@@ -4,9 +4,11 @@ import pkgutil
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
 
 import app as app_package
-from app.core import outcomes
+from app.accounts.passwords import Passwords
+from app.core import outcomes, web
 from app.core.clock import Clock
 from app.core.config import Settings
 from app.core.db import Database, TransactionMiddleware
@@ -35,8 +37,10 @@ def create_app(settings: Settings, clock: Clock) -> FastAPI:
     application.state.settings = settings
     application.state.clock = clock
     application.state.database = database
+    application.state.passwords = Passwords(settings.password_hash_profile)
 
     application.add_middleware(TransactionMiddleware, database=database)
-    outcomes.install(application)
+    outcomes.install(application, page=web.refusal_page)
     _include_domain_routes(application)
+    application.mount("/static", StaticFiles(directory=web.STATIC_DIR))
     return application
