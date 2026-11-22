@@ -8,6 +8,7 @@ import argon2
 import psycopg
 import pytest
 
+from app.accounts import service
 from tests.steps.audit.authorization import protected_requests
 from tests.support import recorder
 from tests.support.html import alert_texts, elements
@@ -66,7 +67,8 @@ def test_a_missing_password_is_a_wrong_password(world: World):
     sign_in(world, group="west", name="Wen")
 
     world.assert_rejected("UNAUTHENTICATED", "密碼錯誤，請重試")
-    world.assert_nothing_written()
+    # Counted like any other wrong password (tests/unit/test_sign_in_lockout.py).
+    assert [change.table for change in world.changes()] == ["accounts", "sign_in_attempts"]
 
 
 # Secrets
@@ -76,7 +78,7 @@ def test_the_database_never_holds_the_password_or_the_session_token(world: World
     response = sign_in(world, group="west", name="Wen", password=PASSWORD)
     token = response.cookies[SESSION_COOKIE]
 
-    [session] = world.changes()
+    [session] = [change for change in world.changes() if change.table == "sessions"]
     assert (session.table, session.kind) == ("sessions", "added")
     assert session.after["account_id"] == world.accounts["Wen"]["id"]
     assert datetime.fromisoformat(session.after["created_at"]) == world.clock.now()
@@ -279,3 +281,16 @@ def test_any_protected_action_means_every_route_except_the_public_ones(app, worl
         ("POST", "/_test/things/1/parts/1"),
         ("POST", "/sign-out"),
     ]
+
+
+# The sign-in groups have one owner
+
+
+def test_every_group_the_picker_offers_has_a_name_list(world: World, monkeypatch):
+    monkeypatch.setitem(service.GROUPS, "office", service.Group("辦公室", roles=("ADMIN",), zone="SOUTH"))
+
+    shown = page(world, "/sign-in")
+    offered = [attrs["value"] for attrs, _ in elements(shown.text, "option") if attrs["value"]]
+    assert offered == ["admin", "west", "south", "office"]
+    for group in offered:
+        assert world.send("GET", "/sign-in/names", params={"group": group}).status_code == 200

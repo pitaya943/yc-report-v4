@@ -1,4 +1,4 @@
-"""SQL for accounts and sessions."""
+"""SQL for accounts, sessions and sign-in attempts."""
 
 from dataclasses import dataclass
 from datetime import datetime
@@ -7,19 +7,19 @@ from psycopg import Connection
 
 from app.core.permissions import Actor
 
-# Which accounts each sign-in group lists. The owner signs in under "admin".
-_GROUP_FILTER = {
-    "admin": "role in ('OWNER', 'ADMIN')",
-    "west": "role = 'USER' and zone = 'WEST'",
-    "south": "role = 'USER' and zone = 'SOUTH'",
-}
-GROUPS = tuple(_GROUP_FILTER)
+# First key of the advisory locks taken per client address; the second key is
+# a hash of the address. The migration lock uses the one-key form, which
+# PostgreSQL keeps apart from this one.
+_ADDRESS_LOCK_SPACE = 9402
 
 
 @dataclass(frozen=True)
 class Credentials:
     actor: Actor
     password_hash: str
+    failed_count: int
+    last_failed_at: datetime | None
+    locked_until: datetime | None
 
 
 @dataclass(frozen=True)
@@ -30,26 +30,65 @@ class Session:
     last_used_at: datetime
 
 
-def names_in_group(conn: Connection, group: str) -> list[str]:
-    """The display names of the group's accounts that are not archived, in name order."""
+def names_in_group(conn: Connection, *, roles: tuple[str, ...], zone: str | None) -> list[str]:
+    """The display names of the accounts with these roles (and zone, if given) that are not archived, in name order."""
     rows = conn.execute(
         "select display_name from accounts"
-        f" where {_GROUP_FILTER[group]} and archived_at is null order by display_name"
+        " where role = any(%s) and (%s::text is null or zone = %s) and archived_at is null"
+        " order by display_name",
+        (list(roles), zone, zone),
     )
     return [name for (name,) in rows]
 
 
-def credentials_of(conn: Connection, name: str) -> Credentials | None:
-    """The account of that name and its password hash, unless it is archived."""
+def count_attempts_since(conn: Connection, address: str, since: datetime) -> int:
+    """How many attempts this address made after ``since``.
+
+    Takes the address's lock first and holds it until the transaction ends, so
+    attempts from one address are counted one at a time, whichever process
+    serves them.
+    """
+    conn.execute("select pg_advisory_xact_lock(%s, hashtext(%s))", (_ADDRESS_LOCK_SPACE, address))
+    (count,) = conn.execute(
+        "select count(*) from sign_in_attempts where client_address = %s and attempted_at > %s",
+        (address, since),
+    ).fetchone()
+    return count
+
+
+def insert_attempt(conn: Connection, address: str, at: datetime) -> None:
+    conn.execute("insert into sign_in_attempts (client_address, attempted_at) values (%s, %s)", (address, at))
+
+
+def credentials_for_sign_in(conn: Connection, name: str) -> Credentials | None:
+    """The account of that name with its password hash and failure state, unless it is archived.
+
+    Locks the account's row until the transaction ends: two sign-ins for one
+    account are decided one after the other.
+    """
     row = conn.execute(
-        "select id, display_name, role, password_hash from accounts"
-        " where display_name = %s and archived_at is null",
+        "select id, display_name, role, password_hash, failed_count, last_failed_at, locked_until"
+        " from accounts where display_name = %s and archived_at is null for update",
         (name,),
     ).fetchone()
     if row is None:
         return None
-    account_id, display_name, role, password_hash = row
-    return Credentials(Actor(account_id, display_name, role), password_hash)
+    account_id, display_name, role, password_hash, failed_count, last_failed_at, locked_until = row
+    return Credentials(Actor(account_id, display_name, role), password_hash, failed_count, last_failed_at, locked_until)
+
+
+def set_failure_state(
+    conn: Connection,
+    account_id: int,
+    *,
+    failed_count: int,
+    last_failed_at: datetime | None,
+    locked_until: datetime | None,
+) -> None:
+    conn.execute(
+        "update accounts set failed_count = %s, last_failed_at = %s, locked_until = %s where id = %s",
+        (failed_count, last_failed_at, locked_until, account_id),
+    )
 
 
 def insert_account(

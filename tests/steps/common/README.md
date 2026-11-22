@@ -38,6 +38,7 @@ scenario 會失敗而不是默默略過。
 | --- | --- |
 | `world.sign_in(name)` | 以該帳戶登入（走真的登入頁），記下它的 session，並從落地頁讀出它的防偽造憑證 |
 | `world.signed_in(name, response)` | 接手一個成功的登入回應所開始的 session（同上，給自己送出登入請求的步驟用） |
+| `world.prepare(method, path, …)` | 以訪客身分送出佈置場景用的請求（給 `Given`）：不算 scenario 的請求，回應不被斷言，它寫入的東西算在「請求之前」 |
 | `world.send(method, path, actor=None, …)` | 送出 scenario 的請求。`actor` 是已登入者的名字，不給就是訪客。第一次呼叫之前的資料庫內容，就是「寫入」的比較基準。拒絕以 JSON 回來（`Accept: application/json`）。`actor` 的請求方法不是 `GET`、`HEAD` 時，自動在標頭 `X-CSRF-Token` 帶上該 session 的防偽造憑證（共用版型讓每一頁都這樣做）；`csrf=False` 則不帶 |
 | `world.csrf_token(name)` | 該 session 的頁面上的防偽造憑證 |
 | `world.open_page(path, actor=None)` | 像瀏覽器一樣看一頁（HTML），用來查看請求造成的結果；不算 scenario 的請求 |

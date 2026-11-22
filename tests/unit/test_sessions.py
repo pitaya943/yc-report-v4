@@ -195,8 +195,11 @@ def test_signing_in_needs_no_token_even_with_a_session(world: World):
 
     assert response.status_code == 303
     assert response.cookies[SESSION_COOKIE] != world.sessions["Wen"]
-    [session] = world.changes()
-    assert (session.table, session.kind) == ("sessions", "added")
+    # A new session, and the attempt every evaluated sign-in records (IAM-R07).
+    assert sorted((change.table, change.kind) for change in world.changes()) == [
+        ("sessions", "added"),
+        ("sign_in_attempts", "added"),
+    ]
 
 
 def test_signing_out_without_the_token_leaves_the_session_signed_in(world: World):

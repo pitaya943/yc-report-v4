@@ -8,7 +8,7 @@
   <label>類型
     <select name="group" required hx-get="/sign-in/names" hx-target="#name" hx-trigger="change">
       <option value="">請選擇類型</option>
-      {% for value, label in groups.items() %}<option value="{{ value }}">{{ label }}</option>
+      {% for value, group in groups.items() %}<option value="{{ value }}">{{ group.label }}</option>
       {% endfor %}
     </select>
   </label>

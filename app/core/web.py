@@ -124,7 +124,7 @@ def sign_in_page(
 ) -> HTMLResponse:
     """``message`` is a refusal; ``notice`` is something that went well."""
     return render(
-        request, "accounts/sign_in.html", status=status, groups=accounts.GROUP_LABELS, message=message, notice=notice
+        request, "accounts/sign_in.html", status=status, groups=accounts.GROUPS, message=message, notice=notice
     )
 
 

@@ -110,6 +110,14 @@ class World:
         """The anti-forgery token the pages of ``name``'s session carry."""
         return self._csrf_tokens[self.sessions[name]]
 
+    def prepare(self, method: str, path: str, **kwargs) -> Response:
+        """Send a request that sets the scene (a Given), as a visitor.
+
+        It is not one of the scenario's requests: nothing is asserted about its
+        response, and what it writes is there before the action.
+        """
+        return self._request(method, path, **kwargs)
+
     # The action
 
     def send(self, method: str, path: str, *, actor: str | None = None, csrf: bool = True, **kwargs) -> Response:
