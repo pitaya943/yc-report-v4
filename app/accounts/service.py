@@ -7,7 +7,7 @@ from datetime import timedelta
 
 from psycopg import Connection
 
-from app.accounts import store
+from app.accounts import demo, store
 from app.accounts.passwords import Passwords
 from app.core import audit
 from app.core.clock import Clock
@@ -167,6 +167,40 @@ def create_account(
     return store.insert_account(
         conn, name=name, role=role, zone=zone, big_meter=big_meter, password_hash=passwords.hash(password)
     )
+
+
+class NotAllowed(Exception):
+    """A command-line action that the state of the system rules out; the message is for the operator."""
+
+
+def create_owner(conn: Connection, clock: Clock, passwords: Passwords, *, name: str, password: str) -> None:
+    """Create the one OWNER. Appendix B's rules for a new password apply."""
+    if store.count_accounts(conn, role="OWNER"):
+        raise NotAllowed("已經有擁有者，擁有者只能有一位")
+    if not name or "\x00" in name:
+        raise NotAllowed("請輸入顯示名稱")
+    if not 6 <= len(password) <= 30:
+        raise NotAllowed("密碼長度須為 6 至 30 個字")
+    # Every account has a zone; nothing reads the owner's.
+    create_account(conn, passwords, name=name, role="OWNER", zone="WEST", big_meter=False, password=password)
+    audit.write(conn, clock, audit.SYSTEM, audit.AuditType.ACCOUNT_CREATE, f"以指令建立擁有者：{name}")
+
+
+def seed_demo(conn: Connection, clock: Clock, passwords: Passwords) -> list[str]:
+    """Load the demo accounts into a system that has none, and return their names."""
+    if store.count_accounts(conn):
+        raise NotAllowed("系統裡已經有帳戶，示範帳戶只能載入到空的系統")
+    for account in demo.ACCOUNTS:
+        store.insert_account(
+            conn,
+            name=account.name,
+            role=account.role,
+            zone=account.zone,
+            big_meter=account.big_meter,
+            password_hash=passwords.hash(demo.PASSWORD),
+            archived_at=clock.now() if account.archived else None,
+        )
+    return [account.name for account in demo.ACCOUNTS]
 
 
 def _token_hash(token: str) -> str:

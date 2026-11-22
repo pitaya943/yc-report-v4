@@ -39,6 +39,9 @@ def migrate(database_url: str, clock: Clock, directory: Path = MIGRATIONS_DIR) -
     or changed, or when a pending file is older than an applied one.
     """
     files = _files(directory)
+    if not files:
+        # Starting on an empty schema would look like a working system with no tables.
+        raise MigrationError(f"找不到任何 migration 檔：{directory}")
     hashes = {v: hashlib.sha256(p.read_bytes()).hexdigest() for v, p in files.items()}
     applied_now: list[str] = []
 
@@ -87,3 +90,9 @@ def migrate(database_url: str, clock: Clock, directory: Path = MIGRATIONS_DIR) -
             applied_now.append(path.name)
 
     return applied_now
+
+
+def applied_version(conn: psycopg.Connection) -> int:
+    """The newest migration applied to this database."""
+    (version,) = conn.execute("select coalesce(max(version), 0) from schema_migrations").fetchone()
+    return version

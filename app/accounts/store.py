@@ -92,14 +92,29 @@ def set_failure_state(
 
 
 def insert_account(
-    conn: Connection, *, name: str, role: str, zone: str, big_meter: bool, password_hash: str
+    conn: Connection,
+    *,
+    name: str,
+    role: str,
+    zone: str,
+    big_meter: bool,
+    password_hash: str,
+    archived_at: datetime | None = None,
 ) -> int:
     (account_id,) = conn.execute(
-        "insert into accounts (display_name, role, zone, big_meter, password_hash)"
-        " values (%s, %s, %s, %s, %s) returning id",
-        (name, role, zone, big_meter, password_hash),
+        "insert into accounts (display_name, role, zone, big_meter, password_hash, archived_at)"
+        " values (%s, %s, %s, %s, %s, %s) returning id",
+        (name, role, zone, big_meter, password_hash, archived_at),
     ).fetchone()
     return account_id
+
+
+def count_accounts(conn: Connection, *, role: str | None = None) -> int:
+    """How many accounts there are, archived ones included; of one role if given."""
+    (count,) = conn.execute(
+        "select count(*) from accounts where %s::text is null or role = %s", (role, role)
+    ).fetchone()
+    return count
 
 
 def insert_session(

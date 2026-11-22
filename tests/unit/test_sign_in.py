@@ -278,6 +278,7 @@ def test_any_protected_action_means_every_route_except_the_public_ones(app, worl
     assert protected_requests(app) == [
         ("GET", "/reports"),
         ("GET", "/review"),
+        ("GET", "/status"),
         ("POST", "/_test/things/1/parts/1"),
         ("POST", "/sign-out"),
     ]

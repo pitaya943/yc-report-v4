@@ -2,6 +2,9 @@
 
 from datetime import datetime, timedelta
 
+import random
+import string
+
 import argon2
 import psycopg
 import pytest
@@ -99,6 +102,13 @@ def test_a_refused_form_is_not_an_attempt(world: World):
         # Fewer proxies than expected: the request is counted under its peer.
         ("1", None, "testclient"),
         ("2", "198.51.100.1", "testclient"),
+        # The header sent as several lines is one list.
+        ("2", ["6.6.6.6, 198.51.100.1", "10.0.0.1"], "198.51.100.1"),
+        ("1", ["198.51.100.1", "6.6.6.6", "203.0.113.9"], "203.0.113.9"),
+        ("1", "2001:DB8::1", "2001:db8::1"),
+        # Not an address: no proxy wrote it, so the request is counted under its peer.
+        ("1", "not-an-address", "testclient"),
+        ("1", "fe80::1%" + "z" * 9000, "testclient"),
     ],
 )
 def test_the_client_address_is_the_peer_or_the_value_the_trusted_proxy_wrote(
@@ -107,13 +117,35 @@ def test_the_client_address_is_the_peer_or_the_value_the_trusted_proxy_wrote(
     settings = load_settings(
         {"DATABASE_URL": database_url, "APP_ENV": "test", "PASSWORD_HASH_PROFILE": "fast", "TRUSTED_PROXY_HOPS": hops}
     )
-    headers = JSON | ({"X-Forwarded-For": forwarded} if forwarded else {})
+    lines = [forwarded] if isinstance(forwarded, str) else forwarded or []
+    headers = [*JSON.items(), *(("X-Forwarded-For", line) for line in lines)]
 
     with TestClient(create_app(settings, world.clock)) as client:
         client.post("/sign-in", data={"name": "Wen", "password": "wrong"}, headers=headers)
 
     with psycopg.connect(database_url) as conn:
         assert conn.execute("select client_address from sign_in_attempts").fetchall() == [(address,)]
+
+
+def test_a_forwarded_value_too_long_to_be_an_address_is_answered_as_usual(world: World, database_url):
+    settings = load_settings(
+        {"DATABASE_URL": database_url, "APP_ENV": "test", "PASSWORD_HASH_PROFILE": "fast", "TRUSTED_PROXY_HOPS": "1"}
+    )
+    noise = "".join(random.Random(9).choices(string.ascii_letters + string.digits, k=9000))
+
+    with TestClient(create_app(settings, world.clock), raise_server_exceptions=False) as client:
+        wrong = client.post("/sign-in", data={"name": "Wen", "password": "wrong"}, headers=JSON | {"X-Forwarded-For": noise})
+        right = client.post(
+            "/sign-in",
+            data={"name": "Wen", "password": PASSWORD},
+            headers=JSON | {"X-Forwarded-For": noise},
+            follow_redirects=False,
+        )
+
+    assert (wrong.status_code, wrong.json()["message"]) == (401, "密碼錯誤，請重試")
+    assert right.status_code == 303
+    with psycopg.connect(database_url) as conn:
+        assert conn.execute("select max(length(client_address)) <= 45 from sign_in_attempts").fetchone() == (True,)
 
 
 def test_a_forwarded_address_the_client_made_up_does_not_escape_the_limit(world: World):
