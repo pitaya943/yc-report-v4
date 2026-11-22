@@ -60,6 +60,8 @@ def test_the_built_rules_run_without_being_skipped(checkout, pg_server):
     skipped = [line for line in done.stdout.splitlines() if line.startswith("SKIPPED ")]
     for rule in spec.read_implemented():
         assert not any(line.endswith(f"：{rule}") for line in skipped)
+    # The spec's tags are not turned into pytest marks, which would warn as unknown.
+    assert "warning" not in done.stdout
 
 
 def test_pytest_collects_as_many_cases_as_the_spec_holds():

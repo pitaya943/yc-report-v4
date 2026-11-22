@@ -5,6 +5,7 @@ from datetime import datetime
 import psycopg
 import pytest
 from fastapi import Depends, Request
+from fastapi.responses import JSONResponse
 from pytest_bdd.steps import step_function_context_registry
 
 from app.core import audit
@@ -45,6 +46,26 @@ def routes(app, database_url):
         for _ in range(count):
             audit.write(conn, request.app.state.clock, actor, type, "測試")
         return {"ok": True}
+
+    @app.post("/_test/audit-under-a-borrowed-name")
+    def borrowed_name(request: Request, conn=Depends(connection)):
+        (wei,) = conn.execute("select id from accounts where display_name = 'Wei'").fetchone()
+        audit.write(conn, request.app.state.clock, Actor(wei, "Wen", "USER"), "EXPORT", "測試")
+        return {"ok": True}
+
+    @app.post("/_test/disagreeing/{what}")
+    def disagreeing(what: str):
+        body = {"outcome": "INVALID" if what == "body" else "CONFLICT", "message": "此顯示名稱已被使用"}
+        headers = {} if what == "header" else {"X-Outcome": "CONFLICT"}
+        return JSONResponse(body, status_code=400 if what == "status" else 409, headers=headers)
+
+    @app.post("/_test/crash")
+    def crash():
+        raise RuntimeError("boom")
+
+    @app.post("/_test/labelled-success")
+    def labelled_success():
+        return JSONResponse({"ok": True}, headers={"X-Outcome": "CONFLICT"})
 
     @app.get("/_test/who")
     def who(actor: Actor = Depends(current_actor)):
@@ -131,6 +152,20 @@ def test_rejected_checks_the_class_on_every_response(world: World):
     fails(world.assert_rejected, "CONFLICT")  # one of the two was not refused
 
 
+@pytest.mark.parametrize("what", ["status", "header", "body"])
+def test_rejected_needs_the_status_the_header_and_the_body_to_agree(world: World, what):
+    world.send("POST", f"/_test/disagreeing/{what}")
+
+    fails(world.assert_rejected, "CONFLICT")
+
+
+@pytest.mark.parametrize("path", ["/_test/crash", "/_test/labelled-success"])
+def test_accepted_fails_on_an_error_and_on_a_response_labelled_as_a_refusal(world: World, path):
+    world.send("POST", path)
+
+    fails(world.assert_accepted)
+
+
 def test_rejected_and_accepted_fail_when_no_request_was_sent(world: World):
     fails(world.assert_rejected, "CONFLICT")
     fails(world.assert_accepted)
@@ -204,6 +239,14 @@ def test_the_actor_of_an_audit_row_is_a_person_or_the_system(world: World):
     fails(world.assert_audit_rows_written, "REPORT_CREATE", actor=SYSTEM)
     world.assert_audit_rows_written("ACCOUNT_LOCKOUT", actor=SYSTEM)
     fails(world.assert_audit_rows_written, "ACCOUNT_LOCKOUT", actor="Wen")
+
+
+def test_the_actor_of_an_audit_row_is_matched_by_account_and_not_by_name_alone(world: World):
+    world.send("POST", "/_test/audit-under-a-borrowed-name")
+
+    fails(world.assert_audit_rows_written, "EXPORT", actor="Wen")
+    fails(world.assert_audit_rows_written, "EXPORT", actor="Wei")
+    world.assert_audit_rows_written("EXPORT")
 
 
 def test_nothing_else_is_written_leaves_out_only_the_audit_rows_already_asserted(world: World):

@@ -2,11 +2,13 @@
 
 import json
 import re
+from datetime import datetime
 
 import argon2
 import psycopg
 import pytest
 
+from tests.steps.audit.authorization import protected_requests
 from tests.support import recorder
 from tests.support.html import alert_texts, elements
 from tests.support.world import PASSWORD, SESSION_COOKIE, World
@@ -74,7 +76,11 @@ def test_the_database_never_holds_the_password_or_the_session_token(world: World
     response = sign_in(world, group="west", name="Wen", password=PASSWORD)
     token = response.cookies[SESSION_COOKIE]
 
-    assert [(change.table, change.kind) for change in world.changes()] == [("sessions", "added")]
+    [session] = world.changes()
+    assert (session.table, session.kind) == ("sessions", "added")
+    assert session.after["account_id"] == world.accounts["Wen"]["id"]
+    assert datetime.fromisoformat(session.after["created_at"]) == world.clock.now()
+    assert session.after["ended_at"] is None
     everything = json.dumps(recorder.snapshot(database_url), ensure_ascii=False)
     assert len(token) >= 32
     assert token not in everything
@@ -257,3 +263,18 @@ def test_a_made_up_session_cookie_is_not_signed_in(world: World):
     world.send("GET", "/reports", actor="Intruder")
 
     world.assert_rejected("UNAUTHENTICATED", "請重新登入")
+
+
+# The step behind AUD-R01
+
+
+def test_any_protected_action_means_every_route_except_the_public_ones(app, world: World):
+    @app.post("/_test/things/{thing_id}/parts/{part_id}")
+    def change_part(thing_id: int, part_id: int):
+        return {}
+
+    assert protected_requests(app) == [
+        ("GET", "/reports"),
+        ("GET", "/review"),
+        ("POST", "/_test/things/1/parts/1"),
+    ]
