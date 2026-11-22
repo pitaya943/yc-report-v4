@@ -1,0 +1,7 @@
+# Only what the image copies is sent to the build.
+*
+!pyproject.toml
+!app
+!migrations
+**/__pycache__
+**/*.egg-info

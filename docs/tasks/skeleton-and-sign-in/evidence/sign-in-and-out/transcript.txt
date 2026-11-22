@@ -1,0 +1,7 @@
+Wen (west) at http://127.0.0.1:45135
+ok: sign-in-page
+ok: group-and-name-chosen
+ok: landing-page
+ok: signed-out
+ok: landing-page-asks-to-sign-in-again
+exit status 0
