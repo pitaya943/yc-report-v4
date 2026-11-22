@@ -9,6 +9,9 @@ from dataclasses import dataclass
 from psycopg.conninfo import conninfo_to_dict
 
 APP_ENVS = ("development", "test", "production")
+# The clock offset is for trying timeouts by hand. 366 days is more than that
+# needs and far below what a datetime can hold.
+MAX_CLOCK_OFFSET_MINUTES = 366 * 24 * 60
 PASSWORD_HASH_PROFILES = ("standard", "fast")
 
 
@@ -80,6 +83,10 @@ def load_settings(environ: Mapping[str, str]) -> Settings:
     profile = choice("PASSWORD_HASH_PROFILE", PASSWORD_HASH_PROFILES)
     hops = integer("TRUSTED_PROXY_HOPS", minimum=0)
     offset = integer("CLOCK_OFFSET_MINUTES")
+    if abs(offset) > MAX_CLOCK_OFFSET_MINUTES:
+        problems.append(
+            f"CLOCK_OFFSET_MINUTES：必須在 -{MAX_CLOCK_OFFSET_MINUTES} 到 {MAX_CLOCK_OFFSET_MINUTES} 之間（366 天）"
+        )
 
     if app_env == "production":
         if profile == "fast":

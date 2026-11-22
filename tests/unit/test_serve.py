@@ -5,6 +5,9 @@ import time
 
 import httpx2
 import psycopg
+import uvicorn
+
+from app.__main__ import main
 
 from tests.support.cli import REPO, app_environ
 
@@ -71,4 +74,32 @@ def test_serve_does_not_start_when_the_migration_fails(empty_database):
 
     assert server.returncode not in (0, None)
     assert "0001_audit_log.sql" in stderr
+    assert "migration 失敗" in stderr
     assert not accepts_connections(port)
+
+
+def test_serve_reports_a_database_error_after_migrating_under_its_own_wording(
+    empty_database, monkeypatch, capsys
+):
+    def fail_to_start(*args, **kwargs):
+        raise psycopg.OperationalError("the pool could not be opened")
+
+    monkeypatch.setattr(uvicorn, "run", fail_to_start)
+    monkeypatch.setenv("DATABASE_URL", empty_database)
+
+    status = main(["serve"])
+
+    stderr = capsys.readouterr().err
+    assert status != 0
+    assert "資料庫錯誤：the pool could not be opened" in stderr
+    assert "migration" not in stderr
+
+
+def test_serve_reports_an_unreachable_database_as_a_migration_failure(monkeypatch, capsys):
+    monkeypatch.setenv("DATABASE_URL", f"postgresql://nobody@127.0.0.1:{free_port()}/nothing?connect_timeout=3")
+
+    status = main(["serve"])
+
+    stderr = capsys.readouterr().err
+    assert status != 0
+    assert stderr.startswith("migration 失敗：")

@@ -51,6 +51,15 @@ def test_migrations_use_no_database_time_function():
         ('conn.execute("update t set at = NOW ( )")', "SQL now()"),
         ('conn.execute("insert into t (at) values (current_timestamp)")', "SQL current_timestamp"),
         ('conn.execute("insert into t (at) values (CURRENT_TIMESTAMP)")', "SQL current_timestamp"),
+        ("stamp = datetime.today()", "datetime.today"),
+        ("seconds = time.monotonic()", "time.monotonic"),
+        ("parts = time.localtime()", "time.localtime"),
+        ("from datetime import datetime as dt; stamp = dt.now()", "now() on something other than the clock"),
+        ("from datetime import date as d; day = d.today()", "today() on something other than date"),
+        ("from time import monotonic", "from time import"),
+        ('conn.execute("insert into t (at) values (timeofday())")', "SQL current_timestamp"),
+        ("conn.execute(\"insert into t (at) values ('now'::timestamptz)\")", "SQL 'now'"),
+        ("conn.execute(\"insert into t (day) values (date 'today')\")", "SQL 'now'"),
     ],
 )
 def test_a_time_read_added_anywhere_else_under_app_is_found(tmp_path, line, what):
