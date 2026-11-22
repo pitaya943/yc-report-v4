@@ -5,11 +5,12 @@ import time
 
 import httpx2
 import psycopg
+import pytest
 import uvicorn
 
 from app.__main__ import main
 
-from tests.support.cli import REPO, app_environ
+from tests.support.cli import REPO, app_environ, run_app
 
 
 def free_port() -> int:
@@ -53,6 +54,58 @@ def test_serve_has_migrated_by_the_time_it_answers(empty_database):
     finally:
         server.terminate()
         server.communicate(timeout=30)
+
+
+def test_serve_with_production_settings_migrates_an_empty_database_and_then_answers(empty_database):
+    """The start sequence of the container image, without the container."""
+    port = free_port()
+    server = subprocess.Popen(
+        [sys.executable, "-m", "app", "serve", "--host", "0.0.0.0", "--port", str(port)],
+        cwd=REPO,
+        env=app_environ(DATABASE_URL=empty_database, APP_ENV="production"),
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
+    try:
+        deadline = time.monotonic() + 30
+        status = None
+        while status is None and time.monotonic() < deadline and server.poll() is None:
+            try:
+                status = httpx2.get(f"http://127.0.0.1:{port}/health", timeout=5).status_code
+            except httpx2.TransportError:
+                time.sleep(0.1)
+
+        assert status == 200, server.poll()
+        with psycopg.connect(empty_database) as conn:
+            assert conn.execute("select to_regclass('accounts') is not null").fetchone() == (True,)
+    finally:
+        server.terminate()
+        server.communicate(timeout=30)
+
+
+def test_serve_without_a_database_url_exits_naming_the_setting():
+    port = free_port()
+
+    result = run_app("serve", "--port", str(port), APP_ENV="production")
+
+    assert result.returncode != 0
+    assert "DATABASE_URL：缺少" in result.stderr
+    assert not accepts_connections(port)
+
+
+def test_serve_does_not_start_on_an_empty_schema_when_it_finds_no_migration_files(
+    empty_database, monkeypatch, capsys, tmp_path
+):
+    monkeypatch.setattr("app.core.migrate.migrate.__defaults__", (tmp_path,))
+    monkeypatch.setattr(uvicorn, "run", lambda *args, **kwargs: pytest.fail("the server was started"))
+    monkeypatch.setenv("DATABASE_URL", empty_database)
+
+    status = main(["serve"])
+
+    stderr = capsys.readouterr().err
+    assert status != 0
+    assert f"migration 失敗：找不到任何 migration 檔：{tmp_path}" in stderr
 
 
 def test_serve_does_not_start_when_the_migration_fails(empty_database):

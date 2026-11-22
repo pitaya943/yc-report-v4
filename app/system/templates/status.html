@@ -1,0 +1,11 @@
+{% extends "core/base.html" %}
+{% block title %}系統狀態{% endblock %}
+{% block content %}
+<h1>系統狀態</h1>
+<dl>
+  <dt>資料庫</dt><dd id="database">可連線</dd>
+  <dt>資料庫結構版本</dt><dd id="migration-version">{{ migration_version }}</dd>
+  <dt>檔案儲存</dt><dd id="storage">{{ "已設定" if storage_configured else "未設定" }}</dd>
+  <dt>加密金鑰</dt><dd id="bank-key">{{ "已設定" if bank_key_configured else "未設定" }}</dd>
+</dl>
+{% endblock %}

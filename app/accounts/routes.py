@@ -1,3 +1,5 @@
+import ipaddress
+
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import RedirectResponse, Response
 from psycopg import Connection
@@ -12,6 +14,8 @@ router = APIRouter()
 
 # In the address of the sign-in page a person is sent to after signing out.
 SIGNED_OUT = "signed-out"
+# An IPv6 address written out in full with an IPv4 tail.
+_LONGEST_ADDRESS = 45
 
 
 async def _form(request: Request) -> FormData:
@@ -30,14 +34,19 @@ def _client_address(request: Request) -> str:
     it is the n-th value from the right of X-Forwarded-For, the one the
     outermost trusted proxy wrote; anything further left came from the client
     and is never used. A request that did not pass through that many proxies
-    is counted under its peer.
+    is counted under its peer, and so is one whose value there is not an IP
+    address: a proxy writes nothing else, and the address is stored and
+    indexed, so it has to be short.
     """
     peer = request.client.host if request.client else "unknown"
     hops = request.app.state.settings.trusted_proxy_hops
     forwarded = [value.strip() for value in ",".join(request.headers.getlist("x-forwarded-for")).split(",")]
-    if hops == 0 or len(forwarded) < hops or not forwarded[-hops]:
+    if hops == 0 or len(forwarded) < hops or len(forwarded[-hops]) > _LONGEST_ADDRESS:
         return peer
-    return forwarded[-hops]
+    try:
+        return str(ipaddress.ip_address(forwarded[-hops]))
+    except ValueError:
+        return peer
 
 
 @router.get("/")
