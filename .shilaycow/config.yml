@@ -14,9 +14,10 @@ bot: bullet-bots
 # task = the whole task lands as a single pull request.
 merge_unit: task
 
-# The command that runs the project's tests. Empty until the first task
-# creates a test setup; fill it in then.
-test_command: ""
+# The command that runs the whole suite, the browser test included (it is
+# skipped where Node or Playwright is missing, unless REQUIRE_BROWSER=1).
+# Needs: pip install -e ".[dev]"
+test_command: "python -m pytest"
 
 # Default limit for one unattended task. A subagent counts as a session.
 # A task's brief may set its own.

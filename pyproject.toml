@@ -1,0 +1,42 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "yc-report"
+version = "0.1.0"
+description = "YC daily report system"
+requires-python = ">=3.13"
+dependencies = [
+    "fastapi>=0.165,<1",
+    "uvicorn>=0.54,<1",
+    "psycopg[binary,pool]>=3.3,<4",
+    "argon2-cffi>=25.1,<26",
+    "jinja2>=3.1,<4",
+    "python-multipart>=0.0.34,<0.1",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=9,<10",
+    "httpx2>=2.16,<3",
+    # Exact: the harness uses names pytest-bdd does not document
+    # (scenario_wrapper_template_registry and registry_get_safe in
+    # tests/conftest.py, the "pytestbdd_stepdef" prefix in
+    # tests/steps/__init__.py, step_function_context_registry and get_features
+    # in tests/unit), and any release may rename them. Raise the pin on purpose
+    # and run the suite.
+    "pytest-bdd==9.0.1",
+    # The same parser tools/check_spec.py uses (tools/requirements.txt).
+    "gherkin-official==43.0.0",
+]
+
+[tool.setuptools.packages.find]
+include = ["app*"]
+
+[tool.setuptools.package-data]
+app = ["*/templates/*.html", "core/static/*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+bdd_features_base_dir = "docs/spec"

@@ -4,10 +4,18 @@
 回報計算薪資；另含材料庫存與申請、公司流水帳、日月報檔案庫，以及全程的權限檢查與
 稽核紀錄。
 
-**現況。** 系統尚未建置。這份規格是重建的基準：每個領域的行為目前都列在該領域的
-「尚未建置」，建置它的 task 完成後才移到「情境」。基準來自 yc-daily-report-v3 的規格
+**現況。** 系統建置中。已經建置的是登入、鎖定與頻率限制、閒置逾時與登出（「身分與
+帳戶」的前三個 feature），以及「未登入不得進入」（「稽核」的一條規則）；登入後看到
+的日報頁與確認頁還是空殼。其餘行為列在各領域的「尚未建置」，建置它的 task 完成後
+才移到「情境」。137 條規則中已開啟 11 條。基準來自 yc-daily-report-v3 的規格
 （commit `e839d9d`，owner 已同意其中 13 條定義與 Q-001–Q-062 的決定）；與原文的每一處
 差異列在 [`spec-baseline-diff.md`](../tasks/system-design/spec-baseline-diff.md)。
+
+**來源。** Kuei 的決定 Q-001–Q-062，以及 Kuei 同意的 AD-1–AD-13（見
+[`reference/appendix-e-decisions.md`](reference/appendix-e-decisions.md) 與
+[`definitions.md`](definitions.md)）。
+
+**讀者。** 看不到舊系統的實作者與驗證者。
 
 共 9 個領域、31 個 feature、137 條規則、254 個 scenario、502 個例子（case：一般
 scenario 算一個，Scenario Outline 的每一列算一個）。
@@ -15,7 +23,7 @@ scenario 算一個，Scenario Outline 的每一列算一個）。
 
 ## 領域
 
-箭頭表示「需要對方的資料才能運作」。
+依「資料誰擁有、規則誰決定」切成下列領域。箭頭表示「需要對方的資料才能運作」。
 
 ```mermaid
 flowchart LR
